@@ -1,0 +1,29 @@
+{
+  "name": "optransform3d",
+  "version": "0.1.0",
+  "description": "Operational transformation system for collaborative 3D model editing",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint src/",
+    "example": "node examples/basic-usage.js"
+  },
+  "keywords": [
+    "operational-transformation",
+    "3d",
+    "collaborative",
+    "modeling",
+    "gltf",
+    "blender",
+    "scenekit",
+    "arkit",
+    "realitykit",
+    "sketchup",
+    "arcore"
+  ],
+  "author": "Graphite Labs",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
