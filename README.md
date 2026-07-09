@@ -1,4 +1,4 @@
-# OpTransform3D
+# EditSpace
 
 A comprehensive operational transformation (OT) system for real-time collaborative 3D model editing, similar to Google Docs but for 3D models.
 
