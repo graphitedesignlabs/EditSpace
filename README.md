@@ -17,24 +17,24 @@ A comprehensive operational transformation (OT) system for real-time collaborati
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   OpTransform3D System                       │
+│                   EditSpace System                          │
 ├─────────────────────────────────────────────────────────────┤
-│                                                              │
+│                                                             │
 │  ┌──────────────┐      ┌──────────────┐                     │
 │  │  OT Engine   │◄────►│  Operations  │                     │
 │  └──────────────┘      └──────────────┘                     │
-│         ▲                                                    │
-│         │                                                    │
-│         ▼                                                    │
+│         ▲                                                   │
+│         │                                                   │
+│         ▼                                                   │
 │  ┌──────────────────────────────────────────┐               │
 │  │       glTF Model (Interchange)           │               │
 │  └──────────────────────────────────────────┘               │
-│         ▲                                                    │
-│         │                                                    │
+│         ▲                                                   │
+│         │                                                   │
 │  ┌──────┴───────┬─────────┬──────────┬──────────┐           │
 │  │              │         │          │          │           │
 │  ▼              ▼         ▼          ▼          ▼           │
-│ Blender    SceneKit  RealityKit  SketchUp   ARCore         │
+│ Blender     SceneKit  RealityKit  SketchUp   ARCore         │
 │ Adapter     Adapter    Adapter    Adapter    Adapter        │
 └─────────────────────────────────────────────────────────────┘
 ```
