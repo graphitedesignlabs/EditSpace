@@ -1,6 +1,6 @@
 # EditSpace Protocol
 
-EditSpace is a language- and platform-neutral protocol for collaborative editing of structured documents. This repository is the final abstraction boundary: it defines interoperable data, behavior, and conformance, but contains no EditSpace implementation.
+EditSpace is a language- and platform-neutral protocol for collaboratively creating and editing shared 3D spaces. A space is a synchronized 3D scene: its objects, transforms, geometry, materials, modifiers, assets, hierarchy, and collaborator presence. This repository is the final abstraction boundary: it defines interoperable data, behavior, and conformance, but contains no EditSpace implementation.
 
 The source of truth is:
 
@@ -45,7 +45,7 @@ The report contains actual acceptance decisions, problem kinds, and normalized m
 
 ## Scope
 
-EditSpace defines immutable operations, deterministic ordering and materialization, compatibility behavior, and ephemeral peer presence. It deliberately does not define a renderer, modeling kernel, native scene types, storage engine, network transport, authentication system, asset service, or user interface.
+EditSpace defines immutable 3D scene operations, the shared scene-field vocabulary, deterministic ordering and materialization, compatibility behavior, and ephemeral peer presence. It deliberately does not define a renderer, modeling kernel implementation, native scene types, storage engine, network transport, authentication system, asset service, or user interface.
 
 ## Versioning
 

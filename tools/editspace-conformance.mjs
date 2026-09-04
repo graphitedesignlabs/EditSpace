@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = resolve(root, "conformance/manifest.json");
 const coreActions = new Set(["create", "update", "delete", "duplicate", "link", "unlink"]);
-const coreEntities = new Set(["document", "object", "modifier", "material", "asset", "constraint", "parameter", "dependency", "legacySnapshot"]);
-const coreFeatures = new Set(["core.v1", "crud.v1", "duplicate.v1", "linkedDuplicate.v1", "dependencyGraph.v1", "presence.v1"]);
+const coreEntities = new Set(["space", "document", "object", "mesh", "vertex", "face", "modifier", "material", "asset", "constraint", "parameter", "dependency", "legacySnapshot"]);
+const coreFeatures = new Set(["core.v1", "scene3d.v1", "mesh.v1", "modifiers.v1", "pbrMaterial.v1", "crud.v1", "duplicate.v1", "linkedDuplicate.v1", "dependencyGraph.v1", "presence.v1"]);
 
 function fail(message) {
   throw new Error(message);
@@ -174,6 +174,8 @@ async function validatorSet() {
       }
     }
     if (Array.isArray(value)) {
+      if (schema.minItems !== undefined && value.length < schema.minItems) add(`must contain at least ${schema.minItems} items`);
+      if (schema.maxItems !== undefined && value.length > schema.maxItems) add(`must contain at most ${schema.maxItems} items`);
       if (schema.uniqueItems) {
         const keys = value.map((item) => JSON.stringify(stableValue(item)));
         if (new Set(keys).size !== keys.length) add("must contain unique items");
@@ -208,7 +210,43 @@ function schemaIDForMessage(message) {
   return undefined;
 }
 
-function semanticProblems(message) {
+function sceneFieldProblems(validators, operation) {
+  const definitionNames = {
+    space: "spaceFields",
+    document: "spaceFields",
+    object: "objectFields",
+    mesh: "meshFields",
+    vertex: "vertexFields",
+    face: "faceFields",
+    modifier: "modifierFields",
+    material: "materialFields",
+    asset: "assetFields"
+  };
+  const definitionName = definitionNames[operation.entity];
+  if (!definitionName) return [];
+  const sceneSchema = validators.schemas.get("https://protocol.editspace.dev/schemas/scene-fields-v1.schema.json");
+  const errors = validators.validate(sceneSchema.$defs[definitionName], operation.fields ?? {}, sceneSchema.$id, "$.fields");
+  if (errors.length > 0) return ["invalidOperation"];
+
+  if (operation.entity === "mesh") {
+    const positions = operation.fields?.positions;
+    const faces = operation.fields?.faces;
+    if (Array.isArray(positions) && Array.isArray(faces) && faces.some((face) => face.some((index) => index >= positions.length))) {
+      return ["invalidOperation"];
+    }
+    for (const field of ["normals", "textureCoordinates", "colors"]) {
+      if (Array.isArray(operation.fields?.[field]) && Array.isArray(positions) && operation.fields[field].length !== positions.length) {
+        return ["invalidOperation"];
+      }
+    }
+    if (Array.isArray(operation.fields?.materialIndices) && Array.isArray(faces) && operation.fields.materialIndices.length !== faces.length) {
+      return ["invalidOperation"];
+    }
+  }
+  return [];
+}
+
+function semanticProblems(validators, message) {
   if (message.kind !== "editspace.operations") return [];
   const problems = [];
   const operationsByID = new Map();
@@ -218,6 +256,7 @@ function semanticProblems(message) {
     if (!coreActions.has(operation.action)) problems.push("unsupportedAction");
     if (!coreEntities.has(operation.entity)) problems.push("unsupportedEntity");
     if ((operation.features ?? []).some((feature) => !coreFeatures.has(feature))) problems.push("unsupportedFeature");
+    problems.push(...sceneFieldProblems(validators, operation));
     const existing = operationsByID.get(operation.op);
     if (existing && !equal(normalizedOperation(existing), normalizedOperation(operation))) problems.push("operationIDCollision");
     if (!existing) operationsByID.set(operation.op, operation);
@@ -231,7 +270,7 @@ function messageProblems(validators, value) {
   const schemaID = schemaIDForMessage(value);
   if (!schemaID) return ["invalidOperation", "unknown message kind"];
   const structural = validators.validate(validators.schemas.get(schemaID), value);
-  return structural.length === 0 ? semanticProblems(value) : ["invalidOperation", ...structural];
+  return structural.length === 0 ? semanticProblems(validators, value) : ["invalidOperation", ...structural];
 }
 
 async function runProtocolTests() {

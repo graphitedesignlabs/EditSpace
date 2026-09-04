@@ -1,0 +1,47 @@
+{
+  "kind": "editspace.operations",
+  "v": 1,
+  "doc": "studio",
+  "ops": [
+    {
+      "doc": "studio", "op": "ada:1", "actor": "ada", "seq": 1,
+      "action": "create", "entity": "space", "target": "studio",
+      "features": ["core.v1", "scene3d.v1"],
+      "fields": { "name": "Shared Studio", "units": "meters", "upAxis": "Y", "handedness": "right", "rootObjectIDs": ["cube"] }
+    },
+    {
+      "doc": "studio", "op": "ada:2", "actor": "ada", "seq": 2, "deps": ["ada:1"],
+      "action": "create", "entity": "mesh", "target": "cube-mesh",
+      "features": ["core.v1", "scene3d.v1", "mesh.v1"],
+      "fields": {
+        "name": "Triangle",
+        "positions": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+        "normals": [[0, 0, 1], [0, 0, 1], [0, 0, 1]],
+        "textureCoordinates": [[0, 0], [1, 0], [0, 1]],
+        "faces": [[0, 1, 2]],
+        "materialIndices": [0]
+      }
+    },
+    {
+      "doc": "studio", "op": "ada:3", "actor": "ada", "seq": 3, "deps": ["ada:2"],
+      "action": "create", "entity": "material", "target": "red",
+      "features": ["core.v1", "scene3d.v1", "pbrMaterial.v1"],
+      "fields": { "name": "Red", "baseColor": [1, 0, 0, 1], "metallic": 0, "roughness": 0.5, "opacity": 1, "doubleSided": false }
+    },
+    {
+      "doc": "studio", "op": "ada:4", "actor": "ada", "seq": 4, "deps": ["ada:3"],
+      "action": "create", "entity": "object", "target": "cube",
+      "features": ["core.v1", "scene3d.v1"],
+      "fields": {
+        "name": "Triangle Object", "objectType": "mesh", "meshID": "cube-mesh", "materialIDs": ["red"],
+        "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], "visible": true, "opacity": 1
+      }
+    },
+    {
+      "doc": "studio", "op": "ada:5", "actor": "ada", "seq": 5, "deps": ["ada:4"],
+      "action": "update", "entity": "object", "target": "cube",
+      "features": ["core.v1", "scene3d.v1"],
+      "fields": { "position": [0, 1, 0] }
+    }
+  ]
+}

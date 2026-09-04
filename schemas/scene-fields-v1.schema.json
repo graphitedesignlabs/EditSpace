@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.editspace.dev/schemas/scene-fields-v1.schema.json",
+  "title": "EditSpace shared 3D scene fields v1",
+  "$defs": {
+    "number": { "type": "number" },
+    "unitInterval": { "type": "number", "minimum": 0, "maximum": 1 },
+    "vec2": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/number" }
+    },
+    "vec3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/number" }
+    },
+    "vec4": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/number" }
+    },
+    "color": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/unitInterval" }
+    },
+    "matrix4": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/number" }
+    },
+    "dimension": {
+      "type": "object",
+      "required": ["valueMeters"],
+      "properties": {
+        "valueMeters": { "$ref": "#/$defs/number" },
+        "value": { "$ref": "#/$defs/number" },
+        "unitSymbol": { "type": "string" },
+        "points": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/vec3" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "spaceFields": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "units": { "const": "meters" },
+        "upAxis": { "const": "Y" },
+        "handedness": { "const": "right" },
+        "rootObjectIDs": { "type": "array", "items": { "$ref": "common-v1.schema.json#/$defs/identifier" }, "uniqueItems": true },
+        "environmentAssetID": { "$ref": "common-v1.schema.json#/$defs/identifier" }
+      },
+      "additionalProperties": true
+    },
+    "objectFields": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "objectType": { "$ref": "common-v1.schema.json#/$defs/token" },
+        "parentID": { "anyOf": [{ "$ref": "common-v1.schema.json#/$defs/identifier" }, { "type": "null" }] },
+        "transform": { "$ref": "#/$defs/matrix4" },
+        "pivot": { "$ref": "#/$defs/matrix4" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "orientation": { "$ref": "#/$defs/vec4" },
+        "quaternion": { "$ref": "#/$defs/vec4" },
+        "scale": { "$ref": "#/$defs/vec3" },
+        "visible": { "type": "boolean" },
+        "opacity": { "$ref": "#/$defs/unitInterval" },
+        "meshID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+        "materialIDs": { "type": "array", "items": { "$ref": "common-v1.schema.json#/$defs/identifier" } },
+        "modifierIDs": { "type": "array", "items": { "$ref": "common-v1.schema.json#/$defs/identifier" }, "uniqueItems": true }
+      },
+      "additionalProperties": true
+    },
+    "meshFields": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "positions": { "type": "array", "items": { "$ref": "#/$defs/vec3" } },
+        "normals": { "type": "array", "items": { "$ref": "#/$defs/vec3" } },
+        "textureCoordinates": { "type": "array", "items": { "$ref": "#/$defs/vec2" } },
+        "colors": { "type": "array", "items": { "$ref": "#/$defs/color" } },
+        "faces": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "items": { "$ref": "common-v1.schema.json#/$defs/safeInteger" }
+          }
+        },
+        "materialIndices": { "type": "array", "items": { "$ref": "common-v1.schema.json#/$defs/safeInteger" } },
+        "bounds": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": { "min": { "$ref": "#/$defs/vec3" }, "max": { "$ref": "#/$defs/vec3" } },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "vertexFields": {
+      "type": "object",
+      "properties": {
+        "meshID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "normal": { "$ref": "#/$defs/vec3" },
+        "textureCoordinate": { "$ref": "#/$defs/vec2" },
+        "color": { "$ref": "#/$defs/color" }
+      },
+      "additionalProperties": true
+    },
+    "faceFields": {
+      "type": "object",
+      "properties": {
+        "meshID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+        "vertexIDs": { "type": "array", "minItems": 3, "items": { "$ref": "common-v1.schema.json#/$defs/identifier" }, "uniqueItems": true },
+        "materialID": { "$ref": "common-v1.schema.json#/$defs/identifier" }
+      },
+      "additionalProperties": true
+    },
+    "modifierFields": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "objectID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+        "modifierType": { "$ref": "common-v1.schema.json#/$defs/token" },
+        "enabled": { "type": "boolean" },
+        "order": { "$ref": "common-v1.schema.json#/$defs/safeInteger" },
+        "segments": { "type": "integer", "minimum": 3, "maximum": 9007199254740991 },
+        "radius": { "anyOf": [{ "$ref": "#/$defs/dimension" }, { "$ref": "#/$defs/number" }] },
+        "width": { "anyOf": [{ "$ref": "#/$defs/dimension" }, { "$ref": "#/$defs/number" }, { "type": "null" }] },
+        "height": { "$ref": "#/$defs/dimension" },
+        "depth": { "anyOf": [{ "$ref": "#/$defs/dimension" }, { "$ref": "#/$defs/number" }] },
+        "vertices": { "type": "array", "items": { "$ref": "#/$defs/vec3" } },
+        "pathPoints": { "type": "array", "items": { "$ref": "#/$defs/vec3" } },
+        "closed": { "type": "boolean" },
+        "localNormal": { "$ref": "#/$defs/vec3" },
+        "capEnds": { "type": "boolean" },
+        "minimumResolution": { "$ref": "common-v1.schema.json#/$defs/safeInteger" },
+        "curveResolution": { "$ref": "common-v1.schema.json#/$defs/safeInteger" },
+        "color": { "$ref": "#/$defs/color" },
+        "renderingMode": { "$ref": "common-v1.schema.json#/$defs/token" },
+        "text": { "type": "string" },
+        "embeddedMesh": { "$ref": "#/$defs/meshFields" }
+      },
+      "additionalProperties": true
+    },
+    "materialFields": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "baseColor": { "$ref": "#/$defs/color" },
+        "metallic": { "$ref": "#/$defs/unitInterval" },
+        "roughness": { "$ref": "#/$defs/unitInterval" },
+        "emissiveColor": { "$ref": "#/$defs/color" },
+        "opacity": { "$ref": "#/$defs/unitInterval" },
+        "doubleSided": { "type": "boolean" },
+        "baseColorTextureAssetID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+        "normalTextureAssetID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+        "metallicRoughnessTextureAssetID": { "$ref": "common-v1.schema.json#/$defs/identifier" }
+      },
+      "additionalProperties": true
+    },
+    "assetFields": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "uri": { "type": "string" },
+        "mediaType": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

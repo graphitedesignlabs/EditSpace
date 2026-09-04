@@ -1,0 +1,6 @@
+{
+  "kind": "editspace.operations",
+  "v": 1,
+  "doc": "studio",
+  "ops": [{ "doc": "studio", "op": "ada:1", "actor": "ada", "seq": 1, "action": "create", "entity": "mesh", "target": "mesh", "features": ["scene3d.v1", "mesh.v1"], "fields": { "positions": [[0, 0, 0], [1, 0, 0], [0, 1, 0]], "faces": [[0, 1, 3]] } }]
+}

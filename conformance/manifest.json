@@ -3,14 +3,15 @@
   "policy": {
     "supportedOperationSchemaVersion": 1,
     "supportedActions": ["create", "update", "delete", "duplicate", "link", "unlink"],
-    "supportedEntities": ["document", "object", "modifier", "material", "asset", "constraint", "parameter", "dependency", "legacySnapshot"],
-    "supportedFeatures": ["core.v1", "crud.v1", "duplicate.v1", "linkedDuplicate.v1", "dependencyGraph.v1", "presence.v1"]
+    "supportedEntities": ["space", "document", "object", "mesh", "vertex", "face", "modifier", "material", "asset", "constraint", "parameter", "dependency", "legacySnapshot"],
+    "supportedFeatures": ["core.v1", "scene3d.v1", "mesh.v1", "modifiers.v1", "pbrMaterial.v1", "crud.v1", "duplicate.v1", "linkedDuplicate.v1", "dependencyGraph.v1", "presence.v1"]
   },
   "wireFixtures": [
     { "id": "wire.operation-minimal", "path": "conformance/fixtures/valid/operation-minimal.json", "valid": true, "required": true },
     { "id": "wire.operation-full", "path": "conformance/fixtures/valid/operation-full.json", "valid": true, "required": true },
     { "id": "wire.equivalent-duplicate", "path": "conformance/fixtures/valid/equivalent-duplicate.json", "valid": true, "required": true },
     { "id": "wire.presence", "path": "conformance/fixtures/valid/presence.json", "valid": true, "required": true },
+    { "id": "wire.shared-3d-scene", "path": "conformance/fixtures/valid/shared-3d-scene.json", "valid": true, "required": true },
     { "id": "wire.negative-sequence", "path": "conformance/fixtures/invalid/negative-sequence.json", "valid": false, "problem": "invalidOperation", "required": true },
     { "id": "wire.document-mismatch", "path": "conformance/fixtures/invalid/document-mismatch.json", "valid": false, "problem": "documentMismatch", "required": true },
     { "id": "wire.duplicate-missing-source", "path": "conformance/fixtures/invalid/duplicate-missing-source.json", "valid": false, "problem": "invalidOperation", "required": true },
@@ -18,7 +19,9 @@
     { "id": "wire.unsupported-schema", "path": "conformance/fixtures/invalid/unsupported-schema.json", "valid": false, "problem": "unsupportedSchema", "required": true },
     { "id": "wire.unsupported-action", "path": "conformance/fixtures/invalid/unsupported-action.json", "valid": false, "problem": "unsupportedAction", "required": true },
     { "id": "wire.unsupported-entity", "path": "conformance/fixtures/invalid/unsupported-entity.json", "valid": false, "problem": "unsupportedEntity", "required": true },
-    { "id": "wire.unsupported-feature", "path": "conformance/fixtures/invalid/unsupported-feature.json", "valid": false, "problem": "unsupportedFeature", "required": true }
+    { "id": "wire.unsupported-feature", "path": "conformance/fixtures/invalid/unsupported-feature.json", "valid": false, "problem": "unsupportedFeature", "required": true },
+    { "id": "wire.invalid-transform", "path": "conformance/fixtures/invalid/invalid-transform.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.invalid-mesh-index", "path": "conformance/fixtures/invalid/invalid-mesh-index.json", "valid": false, "problem": "invalidOperation", "required": true }
   ],
   "vectors": [
     { "id": "materialize.concurrent-field-writes", "path": "conformance/vectors/concurrent-field-writes.json", "required": true },

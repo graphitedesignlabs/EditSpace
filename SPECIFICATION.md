@@ -6,7 +6,7 @@ The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT, and MAY are to be in
 
 ## 1. Purpose and boundary
 
-EditSpace is an application-, language-, model-, transport-, and renderer-neutral protocol for collaborative editing of structured documents. It defines:
+EditSpace is an application-, language-, platform-, transport-, and renderer-neutral protocol for collaboratively creating and editing shared 3D spaces. An EditSpace space is a synchronized 3D scene, not an arbitrary document. It contains scene objects, transforms, geometry, materials, modifiers, assets, hierarchy, constraints, and collaborator presence. It defines:
 
 1. immutable durable operations;
 2. deterministic validation, ordering, and materialization;
@@ -14,7 +14,7 @@ EditSpace is an application-, language-, model-, transport-, and renderer-neutra
 4. ephemeral peer identity and presence; and
 5. a common conformance contract.
 
-It does not define native APIs, a modeling kernel, scene graph, renderer, UI, network topology, authentication, authorization, durable-store product, or asset-transfer service. A platform library implements this specification; it does not extend or redefine the core rules.
+It does not define native APIs, a particular modeling-kernel or scene-graph implementation, renderer, UI, network topology, authentication, authorization, durable-store product, or asset-transfer service. A platform library implements this specification; it does not extend or redefine the core rules.
 
 ## 2. JSON data model
 
@@ -36,17 +36,17 @@ An operation envelope is an object with:
 | --- | --- | --- |
 | `kind` | REQUIRED | Exactly `editspace.operations`. |
 | `v` | REQUIRED | Envelope schema version; exactly `1` for this specification. |
-| `doc` | REQUIRED | Stable document identifier. |
+| `doc` | REQUIRED | Stable shared-space identifier. The short key is retained for v1 wire compatibility; it does not mean EditSpace is a general document protocol. |
 | `ops` | REQUIRED | Array of zero or more operations. |
 
-Every operation in `ops` MUST have the same `doc` as its envelope. Envelopes are transport batches only: splitting, joining, or reordering envelopes MUST NOT change document semantics.
+Every operation in `ops` MUST have the same `doc` space ID as its envelope. Envelopes are transport batches only: splitting, joining, or reordering envelopes MUST NOT change scene semantics.
 
 ### 3.1 Operation
 
 | Member | Requirement | Meaning |
 | --- | --- | --- |
 | `v` | OPTIONAL | Operation schema version; defaults to `1`. |
-| `doc` | REQUIRED | Document identifier. |
+| `doc` | REQUIRED | Shared-space identifier. |
 | `op` | REQUIRED | Globally unique immutable operation identifier. `actor:seq` is recommended. |
 | `actor` | REQUIRED | Stable author identifier. |
 | `seq` | REQUIRED | Actor-local monotonically increasing safe integer. |
@@ -69,9 +69,9 @@ An operation and all its members are immutable after publication. `op` identifie
 
 Core actions are `create`, `update`, `delete`, `duplicate`, `link`, and `unlink`.
 
-Core entity kinds are `document`, `object`, `modifier`, `material`, `asset`, `constraint`, `parameter`, `dependency`, and `legacySnapshot`.
+Core entity kinds are `space`, `object`, `mesh`, `vertex`, `face`, `modifier`, `material`, `asset`, `constraint`, `parameter`, `dependency`, and `legacySnapshot`. The v1 `document` token is a deprecated compatibility spelling for `space` metadata; producers MUST emit `space`.
 
-Core feature tokens are `core.v1`, `crud.v1`, `duplicate.v1`, `linkedDuplicate.v1`, `dependencyGraph.v1`, and `presence.v1`.
+Core feature tokens are `core.v1`, `scene3d.v1`, `mesh.v1`, `modifiers.v1`, `pbrMaterial.v1`, `crud.v1`, `duplicate.v1`, `linkedDuplicate.v1`, `dependencyGraph.v1`, and `presence.v1`.
 
 Action, entity, and feature domains are open. Extension tokens SHOULD use a reverse-DNS or similarly collision-resistant prefix. An unknown token MUST NOT be interpreted as a known token.
 
@@ -88,12 +88,105 @@ Action, entity, and feature domains are open. Extension tokens SHOULD use a reve
 
 For `link` and `unlink`, `entity` is the kind of both source and target. Cross-kind links require an extension action whose semantics declare both kinds.
 
+### 3.4 Shared 3D scene model
+
+The `fields` object is not an opaque application dictionary for core entities. The field names and value shapes below are the interoperable EditSpace scene model. `create` supplies an entity's initial fields. `update` is a sparse field patch: omitted fields are unchanged, and each supplied top-level field is an independent last-writer-wins register. Arrays and nested objects are atomic values unless their contents are modeled as separate entities.
+
+Unknown fields are extensions and MUST use a collision-resistant prefix. Implementations MUST preserve them, but MUST NOT guess their meaning. A core field with the wrong value shape is `invalidOperation`.
+
+#### Coordinate and numeric conventions
+
+- Linear values are meters unless a field explicitly declares another unit.
+- The canonical coordinate system is right-handed, Y-up, with the local forward direction along negative Z.
+- A `vec2`, `vec3`, or `vec4` is a JSON array containing exactly 2, 3, or 4 finite numbers.
+- An axis-angle rotation is `[axisX, axisY, axisZ, angleRadians]` with a normalized axis. A quaternion field, where explicitly named, is `[x, y, z, w]` and MUST be normalized before emission.
+- A 4×4 transform is 16 finite numbers in column-major order. Indices `0...3` are column 0, `4...7` are column 1, `8...11` are column 2, and `12...15` are the translation column. It maps entity-local coordinates into parent coordinates using column vectors.
+- A color is sRGB `[red, green, blue, alpha]`, with every component in `0...1`.
+- Angles are radians. Texture coordinates use `[u, v]` with the texture origin at the lower-left.
+- An adapter for a Z-up or left-handed host MUST convert at the protocol boundary.
+
+#### `space` fields
+
+| Field | Value | Meaning |
+| --- | --- | --- |
+| `name` | string | User-visible space name. |
+| `units` | `"meters"` | Canonical linear unit. |
+| `upAxis` | `"Y"` | Canonical up axis. |
+| `handedness` | `"right"` | Canonical handedness. |
+| `rootObjectIDs` | entity-ID array | Ordered roots of the shared scene. |
+| `environmentAssetID` | entity ID | Optional environment/lighting asset. |
+
+#### `object` fields
+
+| Field | Value | Meaning |
+| --- | --- | --- |
+| `name` | string | User-visible object name. |
+| `objectType` | token | Semantic type such as `mesh`, `curve`, `light`, `camera`, or `group`. |
+| `parentID` | entity ID or null | Parent object; null means scene root. |
+| `transform` | matrix4 | Authoritative local transform. |
+| `pivot` | matrix4 | Local modeling pivot. |
+| `visible` | boolean | Scene visibility. |
+| `opacity` | number | Object opacity in `0...1`. |
+| `meshID` | entity ID | Referenced mesh entity. |
+| `materialIDs` | entity-ID array | Ordered material slots. |
+| `modifierIDs` | entity-ID array | Ordered modifier stack. |
+
+`position`, `orientation`, and `scale` MAY be used instead of `transform` for component editing. `orientation` uses axis-angle; `quaternion` is the optional quaternion alternative. When an operation supplies `transform`, it is authoritative for that operation; otherwise supplied components patch the prior decomposition. Producers SHOULD avoid sending multiple rotation representations in one operation.
+
+#### Geometry
+
+A `mesh` may use a bulk representation for import, creation, or whole-mesh replacement:
+
+| Field | Value | Meaning |
+| --- | --- | --- |
+| `positions` | vec3 array | Vertex positions in mesh-local meters. |
+| `normals` | vec3 array | Optional per-position normals. |
+| `textureCoordinates` | vec2 array | Optional per-position UV coordinates. |
+| `colors` | color array | Optional per-position colors. |
+| `faces` | integer-array array | Polygon vertex indices into `positions`; each face has at least three indices. |
+| `materialIndices` | non-negative integer array | Optional material slot for each face. |
+| `bounds` | `{min: vec3, max: vec3}` | Optional local-space bounds cache. |
+
+All indices MUST be in range. If normals, UVs, colors, or material indices are present, their counts MUST match the corresponding positions or faces. Because each top-level field is atomic, producers changing mesh topology SHOULD update all dependent arrays in one operation.
+
+For fine-grained concurrent modeling, vertices and faces are separate stable entities. A `vertex` has required `meshID` and `position`, with optional `normal`, `textureCoordinate`, and `color`. A `face` has required `meshID` and an ordered `vertexIDs` array of at least three stable vertex IDs, plus optional `materialID`. Deleting a mesh does not erase its vertex/face operation history.
+
+#### `modifier` fields
+
+A modifier has required `objectID`, `modifierType`, `enabled`, and `order`. Its parameter fields are semantic inputs; generated geometry is a cache and MUST NOT be synchronized as authoritative state when the inputs are available.
+
+Core modifier types and fields include:
+
+| `modifierType` | Fields |
+| --- | --- |
+| `circle` | `segments` integer ≥ 3, `radius` dimension |
+| `polyline` | `vertices` vec3 array, optional `closed` boolean |
+| `box` | `width`, `height`, `depth` dimensions |
+| `sphere` | `radius` dimension, optional `segments` integer |
+| `extrusion` | `depth` number, optional `localNormal` vec3 and `pathPoints` vec3 array |
+| `extrudePipe` | `radius` number, `capEnds` boolean |
+| `smooth` | `minimumResolution` integer, `curveResolution` integer |
+| `closeLoop`, `solidify`, `shiftToSurface` | Type-specific extension parameters, if any |
+| `strokeRenderer`, `wireframe` | `width` number, optional `color` and rendering-mode token |
+| `label` | `text` string |
+| `externalModel` | optional `embeddedMesh` using the bulk mesh shape, or an asset reference |
+
+A dimension is `{ "valueMeters": number }` with optional authoring metadata such as display value, unit symbol, or defining points. Implementations compute generated vertices from modifier inputs deterministically where they support the modifier type.
+
+#### `material` and `asset` fields
+
+Core materials use a metallic/roughness PBR vocabulary: `name`, `baseColor`, `metallic`, `roughness`, `emissiveColor`, `opacity`, `doubleSided`, `baseColorTextureAssetID`, `normalTextureAssetID`, and `metallicRoughnessTextureAssetID`. Colors use sRGB; scalar factors are in `0...1`.
+
+An asset contains `name`, `uri`, `mediaType`, and `sha256`. `sha256` is the lowercase hexadecimal digest of the referenced bytes. Large mesh buffers, textures, and media SHOULD travel through the asset channel while their IDs, hashes, and scene relationships travel through operations.
+
+The normative structural shapes for these fields are in `schemas/scene-fields-v1.schema.json` and are exercised by conformance fixtures.
+
 ## 4. Acceptance and compatibility
 
 Before accepting an operation, an endpoint checks it in this order:
 
 1. structural schema validity;
-2. envelope/operation document equality and expected local document equality;
+2. envelope/operation space-ID equality and expected local space-ID equality;
 3. operation-ID duplicate or collision;
 4. supported operation schema version;
 5. supported required feature tokens;
@@ -120,7 +213,7 @@ A dependency absent from the available input set does not block ordering. Receiv
 
 ## 6. Materialized state
 
-The durable operation set is authoritative. Materialized state and snapshots are disposable caches.
+The durable operation set is authoritative. Materialized shared-scene state and snapshots are disposable caches.
 
 Each entity is addressed by `(entity, target)` and contains:
 
@@ -147,7 +240,7 @@ Unapplied operations remain preserved and reported in deterministic replay order
 
 ## 7. Presence envelope
 
-Presence is ephemeral and separate from durable operations. It MUST NOT enter the operation log or affect materialized document state.
+Presence is ephemeral and separate from durable operations. It MUST NOT enter the operation log or affect materialized shared-scene state.
 
 A presence envelope contains `kind = editspace.presence`, `v = 1`, `doc`, and `presence`. The presence value contains:
 

@@ -2,7 +2,7 @@
   "name": "@graphitedesignlabs/editspace-protocol",
   "version": "1.0.0",
   "private": true,
-  "description": "Language-neutral EditSpace protocol definitions and conformance suite",
+  "description": "Language-neutral shared 3D space protocol definitions and conformance suite",
   "type": "module",
   "scripts": {
     "test": "node tools/editspace-conformance.mjs test",
