@@ -1,29 +1,16 @@
 {
-  "name": "optransform3d",
-  "version": "0.1.0",
-  "description": "Operational transformation system for collaborative 3D model editing",
-  "main": "src/index.js",
+  "name": "@graphitedesignlabs/editspace-protocol",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Language-neutral EditSpace protocol definitions and conformance suite",
   "type": "module",
   "scripts": {
-    "test": "node --test",
-    "lint": "eslint src/",
-    "example": "node examples/basic-usage.js"
+    "test": "node tools/editspace-conformance.mjs test",
+    "validate": "node tools/editspace-conformance.mjs validate",
+    "conformance": "node tools/editspace-conformance.mjs conformance"
   },
-  "keywords": [
-    "operational-transformation",
-    "3d",
-    "collaborative",
-    "modeling",
-    "gltf",
-    "blender",
-    "scenekit",
-    "arkit",
-    "realitykit",
-    "sketchup",
-    "arcore"
-  ],
-  "author": "Graphite Labs",
-  "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {}
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
 }

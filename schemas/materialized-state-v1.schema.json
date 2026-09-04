@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.editspace.dev/schemas/materialized-state-v1.schema.json",
+  "title": "Normalized EditSpace materialized state v1",
+  "type": "object",
+  "required": ["doc", "orderedOperationIDs", "entities", "unappliedOperationIDs"],
+  "properties": {
+    "doc": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+    "orderedOperationIDs": {
+      "type": "array",
+      "items": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+      "uniqueItems": true
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "id", "source", "fields", "arguments", "links", "createdBy", "tombstone"],
+        "properties": {
+          "kind": { "$ref": "common-v1.schema.json#/$defs/token" },
+          "id": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+          "source": {
+            "anyOf": [
+              { "$ref": "common-v1.schema.json#/$defs/identifier" },
+              { "type": "null" }
+            ]
+          },
+          "fields": { "type": "object" },
+          "arguments": { "type": "object" },
+          "links": {
+            "type": "array",
+            "items": { "$ref": "common-v1.schema.json#/$defs/entityReference" },
+            "uniqueItems": true
+          },
+          "createdBy": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+          "tombstone": {
+            "anyOf": [
+              { "$ref": "common-v1.schema.json#/$defs/stamp" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "unappliedOperationIDs": {
+      "type": "array",
+      "items": { "$ref": "common-v1.schema.json#/$defs/identifier" }
+    }
+  },
+  "additionalProperties": false
+}

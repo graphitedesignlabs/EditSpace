@@ -1,0 +1,33 @@
+{
+  "id": "materialize.tombstone-and-unapplied",
+  "protocolVersion": 1,
+  "description": "Updates to missing and tombstoned entities are preserved as unapplied operations.",
+  "input": {
+    "kind": "editspace.operations",
+    "v": 1,
+    "doc": "scene",
+    "ops": [
+      { "doc": "scene", "op": "c:3", "actor": "c", "seq": 3, "action": "update", "entity": "object", "target": "cube", "fields": { "x": 3 } },
+      { "doc": "scene", "op": "b:2", "actor": "b", "seq": 2, "action": "delete", "entity": "object", "target": "cube" },
+      { "doc": "scene", "op": "a:1", "actor": "a", "seq": 1, "action": "create", "entity": "object", "target": "cube", "fields": { "x": 1 } },
+      { "doc": "scene", "op": "a:0", "actor": "a", "seq": 0, "action": "update", "entity": "object", "target": "cube", "fields": { "x": 0 } }
+    ]
+  },
+  "expected": {
+    "doc": "scene",
+    "orderedOperationIDs": ["a:0", "a:1", "b:2", "c:3"],
+    "entities": [
+      {
+        "kind": "object",
+        "id": "cube",
+        "source": null,
+        "fields": { "x": 1 },
+        "arguments": {},
+        "links": [],
+        "createdBy": "a:1",
+        "tombstone": { "seq": 2, "actor": "b", "op": "b:2" }
+      }
+    ],
+    "unappliedOperationIDs": ["a:0", "c:3"]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.editspace.dev/schemas/operation-envelope-v1.schema.json",
+  "title": "EditSpace operation envelope v1",
+  "type": "object",
+  "required": ["kind", "v", "doc", "ops"],
+  "properties": {
+    "kind": { "const": "editspace.operations" },
+    "v": { "const": 1 },
+    "doc": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+    "ops": {
+      "type": "array",
+      "items": { "$ref": "common-v1.schema.json#/$defs/operation" }
+    }
+  },
+  "additionalProperties": true
+}

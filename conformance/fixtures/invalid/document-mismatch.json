@@ -1,0 +1,6 @@
+{
+  "kind": "editspace.operations",
+  "v": 1,
+  "doc": "scene-a",
+  "ops": [{ "doc": "scene-b", "op": "ada:1", "actor": "ada", "seq": 1, "action": "create", "entity": "object", "target": "cube" }]
+}

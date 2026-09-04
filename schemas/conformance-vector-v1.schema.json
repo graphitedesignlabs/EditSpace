@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.editspace.dev/schemas/conformance-vector-v1.schema.json",
+  "title": "EditSpace conformance vector v1",
+  "type": "object",
+  "required": ["id", "protocolVersion", "description", "input", "expected"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*$" },
+    "protocolVersion": { "const": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "input": { "$ref": "operation-envelope-v1.schema.json" },
+    "expected": { "$ref": "materialized-state-v1.schema.json" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "editspace.operations",
+  "v": 1,
+  "doc": "scene-7",
+  "ops": [
+    {
+      "v": 1,
+      "doc": "scene-7",
+      "op": "ada:42",
+      "actor": "ada",
+      "seq": 42,
+      "deps": ["ada:41"],
+      "action": "update",
+      "entity": "object",
+      "target": "cube-1",
+      "fields": { "transform.position": [0, 1, 0] },
+      "args": { "gesture": "drag" },
+      "features": ["core.v1", "crud.v1"],
+      "producer": {
+        "app": "Graphite",
+        "appVersion": "1.0",
+        "library": "EditSpace Swift",
+        "libraryVersion": "1.0"
+      },
+      "createdAt": "2026-09-03T20:00:00Z",
+      "extension.example": true
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "materialize.concurrent-field-writes",
+  "protocolVersion": 1,
+  "description": "Concurrent field writes converge by operation stamp regardless of arrival order.",
+  "input": {
+    "kind": "editspace.operations",
+    "v": 1,
+    "doc": "scene",
+    "ops": [
+      { "doc": "scene", "op": "b:2", "actor": "b", "seq": 2, "action": "update", "entity": "object", "target": "cube", "fields": { "x": 2 } },
+      { "doc": "scene", "op": "a:1", "actor": "a", "seq": 1, "action": "create", "entity": "object", "target": "cube", "fields": { "x": 0, "name": "Cube" } },
+      { "doc": "scene", "op": "a:2", "actor": "a", "seq": 2, "action": "update", "entity": "object", "target": "cube", "fields": { "x": 1 } }
+    ]
+  },
+  "expected": {
+    "doc": "scene",
+    "orderedOperationIDs": ["a:1", "a:2", "b:2"],
+    "entities": [
+      {
+        "kind": "object",
+        "id": "cube",
+        "source": null,
+        "fields": { "name": "Cube", "x": 2 },
+        "arguments": {},
+        "links": [],
+        "createdBy": "a:1",
+        "tombstone": null
+      }
+    ],
+    "unappliedOperationIDs": []
+  }
+}

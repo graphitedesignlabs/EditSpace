@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.editspace.dev/schemas/conformance-report-v1.schema.json",
+  "title": "EditSpace implementation conformance report v1",
+  "type": "object",
+  "required": ["kind", "v", "protocolVersion", "protocolRevision", "implementation", "results"],
+  "properties": {
+    "kind": { "const": "editspace.conformance-report" },
+    "v": { "const": 1 },
+    "protocolVersion": { "const": 1 },
+    "protocolRevision": { "type": "string", "minLength": 7 },
+    "implementation": {
+      "type": "object",
+      "required": ["name", "version", "language"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "language": { "type": "string", "minLength": 1 },
+        "platform": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "accepted": { "type": "boolean" },
+          "problems": {
+            "type": "array",
+            "items": {
+              "enum": ["unsupportedSchema", "unsupportedAction", "unsupportedEntity", "unsupportedFeature", "documentMismatch", "invalidOperation", "operationIDCollision"]
+            },
+            "uniqueItems": true
+          },
+          "actual": { "$ref": "materialized-state-v1.schema.json" },
+          "diagnostics": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

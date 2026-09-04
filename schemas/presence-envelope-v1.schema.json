@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.editspace.dev/schemas/presence-envelope-v1.schema.json",
+  "title": "EditSpace presence envelope v1",
+  "type": "object",
+  "required": ["kind", "v", "doc", "presence"],
+  "properties": {
+    "kind": { "const": "editspace.presence" },
+    "v": { "const": 1 },
+    "doc": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+    "presence": {
+      "type": "object",
+      "required": ["identity", "sessionID", "state", "sequence", "selectedEntities", "focus", "updatedAt", "timeToLiveSeconds"],
+      "properties": {
+        "identity": {
+          "type": "object",
+          "required": ["peerID", "actorID", "attributes"],
+          "properties": {
+            "peerID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+            "actorID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+            "displayName": { "type": ["string", "null"] },
+            "color": { "type": ["string", "null"] },
+            "avatarURL": { "type": ["string", "null"] },
+            "attributes": { "type": "object" }
+          },
+          "additionalProperties": true
+        },
+        "sessionID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+        "state": { "enum": ["active", "idle", "away", "offline"] },
+        "sequence": { "$ref": "common-v1.schema.json#/$defs/safeInteger" },
+        "selectedEntities": {
+          "type": "array",
+          "items": { "$ref": "common-v1.schema.json#/$defs/entityReference" }
+        },
+        "focus": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "timeToLiveSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

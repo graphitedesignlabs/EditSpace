@@ -1,0 +1,31 @@
+{
+  "id": "materialize.dependency-cycle-fallback",
+  "protocolVersion": 1,
+  "description": "A dependency cycle falls back to ascending operation-stamp order.",
+  "input": {
+    "kind": "editspace.operations",
+    "v": 1,
+    "doc": "scene",
+    "ops": [
+      { "doc": "scene", "op": "b:1", "actor": "b", "seq": 1, "deps": ["a:1"], "action": "update", "entity": "object", "target": "cube", "fields": { "x": 2 } },
+      { "doc": "scene", "op": "a:1", "actor": "a", "seq": 1, "deps": ["b:1"], "action": "create", "entity": "object", "target": "cube", "fields": { "x": 1 } }
+    ]
+  },
+  "expected": {
+    "doc": "scene",
+    "orderedOperationIDs": ["a:1", "b:1"],
+    "entities": [
+      {
+        "kind": "object",
+        "id": "cube",
+        "source": null,
+        "fields": { "x": 2 },
+        "arguments": {},
+        "links": [],
+        "createdBy": "a:1",
+        "tombstone": null
+      }
+    ],
+    "unappliedOperationIDs": []
+  }
+}

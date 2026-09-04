@@ -1,0 +1,16 @@
+{
+  "kind": "editspace.operations",
+  "v": 1,
+  "doc": "scene",
+  "ops": [
+    {
+      "doc": "scene",
+      "op": "ada:1",
+      "actor": "ada",
+      "seq": 1,
+      "action": "create",
+      "entity": "object",
+      "target": "cube"
+    }
+  ]
+}

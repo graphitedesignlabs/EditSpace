@@ -1,0 +1,22 @@
+{
+  "kind": "editspace.presence",
+  "v": 1,
+  "doc": "scene-7",
+  "presence": {
+    "identity": {
+      "peerID": "device-d761",
+      "actorID": "ada",
+      "displayName": "Ada",
+      "color": "#8B5CF6",
+      "avatarURL": null,
+      "attributes": { "endpoint": "graphite-vision" }
+    },
+    "sessionID": "session-f02b",
+    "state": "active",
+    "sequence": 18,
+    "selectedEntities": [{ "kind": "object", "id": "cube-1" }],
+    "focus": { "rayOrigin": [0, 1.6, 0], "rayDirection": [0, 0, -1] },
+    "updatedAt": "2026-09-03T20:00:02Z",
+    "timeToLiveSeconds": 15
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "materialize.causal-duplicate-and-link",
+  "protocolVersion": 1,
+  "description": "Dependencies order creation, duplication, and linking even when input is reversed.",
+  "input": {
+    "kind": "editspace.operations",
+    "v": 1,
+    "doc": "scene",
+    "ops": [
+      { "doc": "scene", "op": "c:3", "actor": "c", "seq": 3, "deps": ["b:2"], "action": "link", "entity": "object", "source": "cube", "target": "copy" },
+      { "doc": "scene", "op": "b:2", "actor": "b", "seq": 2, "deps": ["a:1"], "action": "duplicate", "entity": "object", "source": "cube", "target": "copy", "fields": { "name": "Copy" } },
+      { "doc": "scene", "op": "a:1", "actor": "a", "seq": 1, "action": "create", "entity": "object", "target": "cube", "fields": { "name": "Cube", "x": 0 } }
+    ]
+  },
+  "expected": {
+    "doc": "scene",
+    "orderedOperationIDs": ["a:1", "b:2", "c:3"],
+    "entities": [
+      {
+        "kind": "object",
+        "id": "copy",
+        "source": "cube",
+        "fields": { "name": "Copy", "x": 0 },
+        "arguments": {},
+        "links": [],
+        "createdBy": "b:2",
+        "tombstone": null
+      },
+      {
+        "kind": "object",
+        "id": "cube",
+        "source": null,
+        "fields": { "name": "Cube", "x": 0 },
+        "arguments": {},
+        "links": [{ "kind": "object", "id": "copy" }],
+        "createdBy": "a:1",
+        "tombstone": null
+      }
+    ],
+    "unappliedOperationIDs": []
+  }
+}
