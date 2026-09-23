@@ -90,7 +90,11 @@ EditSpace defines immutable 3D scene operations, the shared scene-field vocabula
 
 ## Use the EditSpace badge
 
-Projects that pass the EditSpace conformance suite may display the EditSpace compliance badge. Add this Markdown to the project's README:
+Projects that pass the EditSpace conformance suite may display the EditSpace compliance badge.
+
+[![EditSpace compliant](editspacebadge.png)](https://github.com/graphitedesignlabs/EditSpace)
+
+Add this Markdown to the project's README:
 
 ```markdown
 [![EditSpace compliant](https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacebadge.png)](https://github.com/graphitedesignlabs/EditSpace)
