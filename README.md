@@ -1,5 +1,7 @@
 # EditSpace Protocol
 
+[![EditSpace compliant](editspacebadge.png)](#use-the-editspace-badge)
+
 EditSpace is a language- and platform-neutral protocol for collaboratively creating and editing shared 3D spaces. A space is a synchronized 3D scene: its objects, transforms, geometry, materials, modifiers, assets, hierarchy, and collaborator presence. This repository is the final abstraction boundary: it defines interoperable data, behavior, and conformance, but contains no EditSpace implementation.
 
 The source of truth is:
@@ -34,17 +36,18 @@ Operations address core scene entities using the kinds `space`, `object`, `mesh`
 ## Intended architecture
 
 ```mermaid
-flowchart LR
-    Editor[Native editor and scene types] <--> Adapter[EditSpace platform adapter]
-    Adapter -->|immutable operations| Validator[Validate and accept]
-    Validator --> Log[(Authoritative operation set)]
-    Log --> Order[Deterministic ordering and materialization]
-    Order --> Scene[Disposable materialized scene]
+%%{init: {"flowchart": {"nodeSpacing": 60, "rankSpacing": 80}, "themeVariables": {"fontSize": "18px"}}}%%
+flowchart TB
+    Editor["Native editor<br/>and scene types"] <--> Adapter["EditSpace<br/>platform adapter"]
+    Adapter -->|"immutable operations"| Validator["Validate<br/>and accept"]
+    Validator --> Log[("Authoritative<br/>operation set")]
+    Log --> Order["Deterministic ordering<br/>and materialization"]
+    Order --> Scene["Disposable<br/>materialized scene"]
     Scene --> Adapter
 
-    Adapter <-->|operation batches| Relay[Transport, relay, or durable store]
-    Adapter <-.->|ephemeral presence| Relay
-    Adapter <-->|asset IDs and hashes| Assets[Out-of-band asset service]
+    Adapter <-->|"operation batches"| Relay["Transport, relay,<br/>or durable store"]
+    Adapter <-.->|"ephemeral presence"| Relay
+    Adapter <-->|"asset IDs and hashes"| Assets["Out-of-band<br/>asset service"]
 ```
 
 Each implementation maps native scene types to the common JSON protocol at its adapter boundary. Peers may exchange operation batches in any grouping or transport order: acceptance is idempotent, dependencies and operation stamps produce deterministic replay, and the same accepted operation set converges on the same scene. Presence bypasses the durable operation log, while large binary geometry and media travel through an asset channel referenced by stable IDs and hashes.
@@ -84,6 +87,14 @@ The report contains actual acceptance decisions, problem kinds, and normalized m
 ## Scope
 
 EditSpace defines immutable 3D scene operations, the shared scene-field vocabulary, deterministic ordering and materialization, compatibility behavior, and ephemeral peer presence. It deliberately does not define a renderer, modeling kernel implementation, native scene types, storage engine, network transport, authentication system, asset service, or user interface.
+
+## Use the EditSpace badge
+
+Projects that pass the EditSpace conformance suite may display the EditSpace compliance badge. Add this Markdown to the project's README:
+
+```markdown
+[![EditSpace compliant](https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacebadge.png)](https://github.com/graphitedesignlabs/EditSpace)
+```
 
 ## Versioning
 
