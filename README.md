@@ -4,16 +4,25 @@
 
 EditSpace is a language- and platform-neutral protocol for collaboratively creating and editing shared 3D spaces. A space is a synchronized 3D scene: its objects, transforms, geometry, materials, modifiers, assets, hierarchy, and collaborator presence. This repository is the final abstraction boundary: it defines interoperable data, behavior, and conformance, but contains no EditSpace implementation.
 
-The source of truth is:
+This repository publishes:
 
 - [`SPECIFICATION.md`](SPECIFICATION.md) for normative behavior;
 - [`schemas/`](schemas/) for machine-readable wire and result formats;
 - [`conformance/`](conformance/) for implementation-independent golden vectors;
 - [`tools/editspace-conformance.mjs`](tools/editspace-conformance.mjs) for validating schemas, messages, vectors, and implementation reports.
 
+The maintained source of truth for protocol evolution is the [`editspace-swift`](https://github.com/graphitedesignlabs/editspace-swift) reference implementation. Language-neutral changes are periodically back-applied here, then consumed by implementations through a pinned revision of this repository.
+
 An implementation belongs in its language or platform repository. It should include this repository as a Git submodule, translate the conformance inputs into its native API, and compare its serialized results with the expected JSON.
 
-The reference Swift implementation is [`graphitedesignlabs/editspace-swift`](https://github.com/graphitedesignlabs/editspace-swift).
+## Protocol principles
+
+- Operations are truth.
+- Snapshots are disposable caches.
+- Renderers and modeling applications are adapters.
+- Conflicts and compatibility failures are data.
+- Unknown future operations are preserved instead of silently overwritten.
+- Identity and presence belong to EditSpace, while each endpoint chooses how collaborators appear.
 
 ## Operation vocabulary
 
@@ -49,6 +58,12 @@ flowchart TB
     Adapter <-.->|"ephemeral presence"| Relay
     Adapter <-->|"asset IDs and hashes"| Assets["Out-of-band<br/>asset service"]
 ```
+
+Each implementation maps native scene types to the common JSON protocol at its adapter boundary. Peers may exchange operation batches in any grouping or transport order: acceptance is idempotent, dependencies and operation stamps produce deterministic replay, and the same accepted operation set converges on the same scene. Presence bypasses the durable operation log, while large binary geometry and media travel through an asset channel referenced by stable IDs and hashes.
+
+### Durable edits and ephemeral presence
+
+![EditSpace durable synchronization and ephemeral presence paths](Docs/sync-flow.svg)
 
 ## Edit operation packet example
 
@@ -87,7 +102,123 @@ A complete `editspace.operations` wire packet is durable, replayable, and may co
 }
 ```
 
-Each implementation maps native scene types to the common JSON protocol at its adapter boundary. Peers may exchange operation batches in any grouping or transport order: acceptance is idempotent, dependencies and operation stamps produce deterministic replay, and the same accepted operation set converges on the same scene. Presence bypasses the durable operation log, while large binary geometry and media travel through an asset channel referenced by stable IDs and hashes.
+## Protocol definition
+
+Version 1 uses UTF-8 JSON. Transports may frame, compress, encrypt, authenticate, or batch JSON messages, but those choices do not change their contents. Dates are RFC 3339/ISO 8601 strings. Values are JSON null, boolean, finite number, string, array, or object. Binary data is referenced as an asset; it is not embedded in an operation.
+
+### Stable identifiers
+
+| Identifier | Lifetime | Requirement |
+| --- | --- | --- |
+| `doc` | Shared 3D space | Stable for the collaborative scene; the short wire key is retained for v1 compatibility |
+| `actor` | Author installation/account | Stable across reconnects and app launches |
+| `op` | Operation | Globally unique and immutable; `actor:seq` is recommended |
+| `target` | Entity | Stable for the entity lifetime, including after deletion |
+| `peerID` | Person/device presentation identity | Stable enough to recognize a returning collaborator |
+| `sessionID` | Live connection | New for each collaboration session |
+
+### Operation members
+
+| Member | Required | Meaning |
+| --- | --- | --- |
+| `v` | No | Operation schema version; defaults to 1 |
+| `doc` | Yes | Shared-space ID; must match the envelope |
+| `op` | Yes | Immutable operation ID |
+| `actor` | Yes | Author ID |
+| `seq` | Yes | Author-local monotonic sequence used in deterministic ordering |
+| `deps` | No | Causal predecessor operation IDs; defaults to `[]` |
+| `action` | Yes | Extensible action token |
+| `entity` | Yes | Extensible entity-kind token |
+| `target` | Usually | Entity receiving the operation |
+| `source` | For duplicate/link | Source entity |
+| `fields` | No | JSON-safe field writes; defaults to `{}` |
+| `args` | No | Action-specific, JSON-safe arguments; defaults to `{}` |
+| `features` | No | Features required to interpret the operation; defaults to `[]` |
+| `producer` | No | Diagnostics and upgrade guidance; never affects merge order |
+| `createdAt` | No | Informational wall-clock time; never affects merge order |
+
+Core actions are `create`, `update`, `delete`, `duplicate`, `link`, and `unlink`. Core scene entities are `space`, `object`, `mesh`, `vertex`, `face`, `modifier`, `material`, `asset`, `constraint`, `parameter`, `dependency`, and `legacySnapshot`. `document` is accepted only as an early-v1 compatibility token.
+
+The protocol defines concrete 3D fields rather than leaving `fields` opaque: right-handed Y-up meter coordinates; vec2/vec3/vec4 and column-major matrix encodings; object transforms and hierarchy; bulk meshes and stable vertex/face entities; modifier inputs; metallic/roughness PBR materials; and hashed assets. See [the normative shared-scene model](SPECIFICATION.md#34-shared-3d-scene-model).
+
+### Deterministic merge
+
+Implementations MUST:
+
+1. treat an operation ID and its content as immutable;
+2. ignore an exact duplicate operation;
+3. report an operation-ID collision if the same ID has different content;
+4. order known causal predecessors before dependants;
+5. break concurrent ties by `(seq, actor, op)` in ascending lexical order;
+6. resolve each field independently using the greatest operation stamp;
+7. represent deletion with a tombstone operation, never by deleting history;
+8. preserve unsupported operations and avoid applying them destructively.
+
+Missing dependencies do not block synchronization indefinitely. Implementations order the known subset causally and use operation-stamp order for missing or cyclic dependency sets. A receiver may request missing history before materialization.
+
+### Peer identity and presence
+
+Identity is part of EditSpace because collaborator presentation must work consistently across conforming endpoints. Presence remains separate from durable scene state: it expires, is never replayed into a space, and may be hidden entirely by an endpoint.
+
+```json
+{
+  "kind": "editspace.presence",
+  "v": 1,
+  "doc": "scene-7",
+  "presence": {
+    "identity": {
+      "peerID": "device-d761",
+      "actorID": "ada",
+      "displayName": "Ada",
+      "color": "#8B5CF6",
+      "avatarURL": null,
+      "attributes": {
+        "endpoint": "editor"
+      }
+    },
+    "sessionID": "session-f02b",
+    "state": "active",
+    "sequence": 18,
+    "selectedEntities": [
+      { "kind": "object", "id": "cube-1" }
+    ],
+    "focus": {
+      "rayOrigin": [0.0, 1.6, 0.0],
+      "rayDirection": [0.0, 0.0, -1.0]
+    },
+    "updatedAt": "2026-09-03T20:00:02Z",
+    "timeToLiveSeconds": 15
+  }
+}
+```
+
+Presence rules:
+
+- `actorID` links presentation identity to authored operations.
+- A receiver retains only the greatest `sequence` for each `sessionID`.
+- A record expires at `updatedAt + timeToLiveSeconds`.
+- `offline` removes the session immediately.
+- `selectedEntities` and `focus` are hints. They grant no permissions and change no model state.
+- `displayName`, `color`, `avatarURL`, and arbitrary attributes are untrusted presentation data.
+- An endpoint chooses whether to show names, avatars, cursors, selections, cameras, or nothing.
+
+### Compatibility
+
+An implementation declares supported schema versions, actions, entity kinds, and feature tokens. Unsupported input is retained in the immutable log or quarantine store with a structured problem:
+
+- `unsupportedSchema`
+- `unsupportedAction`
+- `unsupportedEntity`
+- `unsupportedFeature`
+- `spaceMismatch`
+- `invalidOperation`
+- `operationIDCollision`
+
+## Implementation guidance
+
+Implementations should begin with the JSON Schemas and golden fixtures. Timestamps must be emitted in UTC RFC 3339 form, sequence values must remain signed 64-bit integers, dictionary order must never affect semantics, and operation equality must compare decoded semantic content.
+
+An adapter should map native scene changes to operations, apply remote state on the platform's required execution context, keep the operation log separate from the render graph, and treat presence updates as disposable UI data.
 
 ## Use as a protocol submodule
 
