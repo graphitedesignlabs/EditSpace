@@ -1,6 +1,6 @@
 # EditSpace Protocol
 
-[![EditSpace compliant](editspacebadge.png)](#use-the-editspace-badge)
+![EditSpace](editspacebanner.png)
 
 EditSpace is a language- and platform-neutral protocol for collaboratively creating and editing shared 3D spaces. A space is a synchronized 3D scene: its objects, transforms, geometry, materials, modifiers, assets, hierarchy, and collaborator presence. This repository is the final abstraction boundary: it defines interoperable data, behavior, and conformance, but contains no EditSpace implementation.
 
@@ -88,16 +88,16 @@ The report contains actual acceptance decisions, problem kinds, and normalized m
 
 EditSpace defines immutable 3D scene operations, the shared scene-field vocabulary, deterministic ordering and materialization, compatibility behavior, and ephemeral peer presence. It deliberately does not define a renderer, modeling kernel implementation, native scene types, storage engine, network transport, authentication system, asset service, or user interface.
 
-## Use the EditSpace badge
+## Use the EditSpace compatibility badge
 
-Projects that pass the EditSpace conformance suite may display the EditSpace compliance badge.
+Projects that pass the EditSpace conformance suite may display the EditSpace compatibility badge.
 
-[![EditSpace compliant](editspacebadge.png)](https://github.com/graphitedesignlabs/EditSpace)
+[![Works with EditSpace](editspacecompatible.png)](https://github.com/graphitedesignlabs/EditSpace)
 
 Add this Markdown to the project's README:
 
 ```markdown
-[![EditSpace compliant](https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacebadge.png)](https://github.com/graphitedesignlabs/EditSpace)
+[![Works with EditSpace](https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacecompatible.png)](https://github.com/graphitedesignlabs/EditSpace)
 ```
 
 ## Versioning
