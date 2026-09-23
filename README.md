@@ -50,6 +50,43 @@ flowchart TB
     Adapter <-->|"asset IDs and hashes"| Assets["Out-of-band<br/>asset service"]
 ```
 
+## Edit operation packet example
+
+A complete `editspace.operations` wire packet is durable, replayable, and may contain one or more immutable edit operations:
+
+```json
+{
+  "kind": "editspace.operations",
+  "v": 1,
+  "doc": "scene-7",
+  "ops": [
+    {
+      "v": 1,
+      "doc": "scene-7",
+      "op": "ada:42",
+      "actor": "ada",
+      "seq": 42,
+      "deps": ["ada:41"],
+      "action": "update",
+      "entity": "object",
+      "target": "cube-1",
+      "fields": {
+        "transform.position": [0.0, 1.0, 0.0]
+      },
+      "args": {},
+      "features": ["core.v1", "crud.v1"],
+      "producer": {
+        "app": "Graphite",
+        "appVersion": "1.0",
+        "library": "EditSpace",
+        "libraryVersion": "0.1"
+      },
+      "createdAt": "2026-09-03T20:00:00Z"
+    }
+  ]
+}
+```
+
 Each implementation maps native scene types to the common JSON protocol at its adapter boundary. Peers may exchange operation batches in any grouping or transport order: acceptance is idempotent, dependencies and operation stamps produce deterministic replay, and the same accepted operation set converges on the same scene. Presence bypasses the durable operation log, while large binary geometry and media travel through an asset channel referenced by stable IDs and hashes.
 
 ## Use as a protocol submodule
