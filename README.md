@@ -92,12 +92,24 @@ EditSpace defines immutable 3D scene operations, the shared scene-field vocabula
 
 Projects that pass the EditSpace conformance suite may display the EditSpace compatibility badge.
 
-[![Works with EditSpace](editspacecompatible-v2.png)](https://github.com/graphitedesignlabs/EditSpace)
+<a href="https://github.com/graphitedesignlabs/EditSpace">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="editspacecompatible-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="editspacecompatible-light.png">
+    <img alt="EditSpace compatible" src="editspacecompatible-light.png">
+  </picture>
+</a>
 
-Add this Markdown to the project's README:
+Add this HTML to the project's README:
 
-```markdown
-[![Works with EditSpace](https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacecompatible-v2.png)](https://github.com/graphitedesignlabs/EditSpace)
+```html
+<a href="https://github.com/graphitedesignlabs/EditSpace">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacecompatible-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacecompatible-light.png">
+    <img alt="EditSpace compatible" src="https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacecompatible-light.png">
+  </picture>
+</a>
 ```
 
 ## Versioning
