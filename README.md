@@ -11,6 +11,44 @@ The source of truth is:
 
 An implementation belongs in its language or platform repository. It should include this repository as a Git submodule, translate the conformance inputs into its native API, and compare its serialized results with the expected JSON.
 
+The reference Swift implementation is [`graphitedesignlabs/editspace-swift`](https://github.com/graphitedesignlabs/editspace-swift).
+
+## Operation vocabulary
+
+EditSpace represents every durable scene edit as an immutable operation. The operation set is authoritative; deterministic replay produces a disposable materialized scene on every peer.
+
+| Term | Meaning |
+| --- | --- |
+| Operation | One immutable edit, identified by `op` and authored by `actor` at actor-local `seq`. |
+| Dependencies | `deps` name causal predecessors. They constrain replay order but do not grant authority or require a particular transport order. |
+| Stamp | The tuple `(seq, actor, op)`, used to order concurrent writes deterministically. |
+| `create` | Creates `target`, or writes supplied fields to an existing live target; it never clears a tombstone. |
+| `update` | Writes supplied fields to an existing live `target`. Each top-level field is an independent last-writer-wins register. |
+| `delete` | Tombstones an existing `target`; history remains in the operation set. |
+| `duplicate` | Creates or replaces `target` from a live `source`, then overlays supplied fields. |
+| `link` / `unlink` | Adds or removes `target` in a live `source` entity's same-kind link set. |
+| Unapplied operation | A preserved operation that cannot affect the current materialized scene, such as an update to a missing target. |
+
+Operations address core scene entities using the kinds `space`, `object`, `mesh`, `vertex`, `face`, `modifier`, `material`, `asset`, `constraint`, `parameter`, and `dependency`. Their `fields` carry interoperable scene properties; `args` carry action metadata; and `features` declare semantics the receiver must support. See the [specification](SPECIFICATION.md) for the complete field vocabulary, validation order, merge rules, and extension behavior.
+
+## Intended architecture
+
+```mermaid
+flowchart LR
+    Editor[Native editor and scene types] <--> Adapter[EditSpace platform adapter]
+    Adapter -->|immutable operations| Validator[Validate and accept]
+    Validator --> Log[(Authoritative operation set)]
+    Log --> Order[Deterministic ordering and materialization]
+    Order --> Scene[Disposable materialized scene]
+    Scene --> Adapter
+
+    Adapter <-->|operation batches| Relay[Transport, relay, or durable store]
+    Adapter <-.->|ephemeral presence| Relay
+    Adapter <-->|asset IDs and hashes| Assets[Out-of-band asset service]
+```
+
+Each implementation maps native scene types to the common JSON protocol at its adapter boundary. Peers may exchange operation batches in any grouping or transport order: acceptance is idempotent, dependencies and operation stamps produce deterministic replay, and the same accepted operation set converges on the same scene. Presence bypasses the durable operation log, while large binary geometry and media travel through an asset channel referenced by stable IDs and hashes.
+
 ## Use as a protocol submodule
 
 ```sh
