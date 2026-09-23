@@ -24,6 +24,12 @@ An implementation belongs in its language or platform repository. It should incl
 - Unknown future operations are preserved instead of silently overwritten.
 - Identity and presence belong to EditSpace, while each endpoint chooses how collaborators appear.
 
+## Reference implementation ecosystem
+
+The following diagram is informative rather than normative. It shows how the current Swift and Python implementations connect Graphite 3D and Blender to the shared protocol.
+
+![EditSpace specification, libraries, applications, and users](Docs/architecture.svg)
+
 ## Operation vocabulary
 
 EditSpace represents every durable scene edit as an immutable operation. The operation set is authoritative; deterministic replay produces a disposable materialized scene on every peer.
