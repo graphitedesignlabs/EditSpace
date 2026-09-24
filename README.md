@@ -262,9 +262,11 @@ The report contains actual acceptance decisions, problem kinds, and normalized m
 
 EditSpace defines immutable 3D scene operations, the shared scene-field vocabulary, deterministic ordering and materialization, compatibility behavior, and ephemeral peer presence. It deliberately does not define a renderer, modeling kernel implementation, native scene types, storage engine, network transport, authentication system, asset service, or user interface.
 
-## Use the EditSpace compatibility badge
+## Badges
 
-Projects that pass the EditSpace conformance suite may display the EditSpace compatibility badge.
+### Compatible SDK
+
+SDKs and protocol libraries that pass the EditSpace conformance suite may display the EditSpace compatibility badge.
 
 <a href="https://github.com/graphitedesignlabs/EditSpace">
   <picture>
@@ -282,6 +284,30 @@ Add this HTML to the project's README:
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacecompatible-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacecompatible-light.png">
     <img alt="EditSpace compatible" src="https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacecompatible-light.png">
+  </picture>
+</a>
+```
+
+### EditSpace Tool
+
+Applications that implement EditTool using a conforming SDK may display the EditSpace Tool badge.
+
+<a href="https://github.com/graphitedesignlabs/EditSpace">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="editspacetool-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="editspacetool.png">
+    <img alt="An EditSpace Tool" src="editspacetool.png">
+  </picture>
+</a>
+
+Add this HTML to the application's README:
+
+```html
+<a href="https://github.com/graphitedesignlabs/EditSpace">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacetool-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacetool.png">
+    <img alt="An EditSpace Tool" src="https://raw.githubusercontent.com/graphitedesignlabs/EditSpace/main/editspacetool.png">
   </picture>
 </a>
 ```
