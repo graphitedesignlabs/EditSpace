@@ -67,6 +67,10 @@ flowchart TB
 
 Each implementation maps native scene types to the common JSON protocol at its adapter boundary. Peers may exchange operation batches in any grouping or transport order: acceptance is idempotent, dependencies and operation stamps produce deterministic replay, and the same accepted operation set converges on the same scene. Presence bypasses the durable operation log, while large binary geometry and media travel through an asset channel referenced by stable IDs and hashes.
 
+## Merging collaboration spaces
+
+Peers that agree to share may publish `editspace.space-merges` declarations joining their existing space identifiers. Declarations are immutable and idempotent; their transitive connected component becomes one logical space, represented by its lexicographically smallest identifier. This makes simultaneous joins, arbitrary peer-group order, and reconnect replay converge without a central owner. Actor sequence numbers remain global across spaces so operation identities stay unique when histories meet.
+
 ### Durable edits and ephemeral presence
 
 ![EditSpace durable synchronization and ephemeral presence paths](Docs/sync-flow.svg)
@@ -131,7 +135,7 @@ Version 1 uses UTF-8 JSON. Transports may frame, compress, encrypt, authenticate
 | `doc` | Yes | Shared-space ID; must match the envelope |
 | `op` | Yes | Immutable operation ID |
 | `actor` | Yes | Author ID |
-| `seq` | Yes | Author-local monotonic sequence used in deterministic ordering |
+| `seq` | Yes | Author-local monotonic sequence, allocated across all spaces, used in deterministic ordering |
 | `deps` | No | Causal predecessor operation IDs; defaults to `[]` |
 | `action` | Yes | Extensible action token |
 | `entity` | Yes | Extensible entity-kind token |
@@ -145,7 +149,7 @@ Version 1 uses UTF-8 JSON. Transports may frame, compress, encrypt, authenticate
 
 Core actions are `create`, `update`, `delete`, `duplicate`, `link`, and `unlink`. Core scene entities are `space`, `object`, `mesh`, `vertex`, `face`, `modifier`, `material`, `asset`, `constraint`, `parameter`, `dependency`, and `legacySnapshot`. `document` is accepted only as an early-v1 compatibility token.
 
-The protocol defines concrete 3D fields rather than leaving `fields` opaque: right-handed Y-up meter coordinates; vec2/vec3/vec4 and column-major matrix encodings; object transforms and hierarchy; bulk meshes and stable vertex/face entities; modifier inputs; metallic/roughness PBR materials; and hashed assets. See [the normative shared-scene model](SPECIFICATION.md#34-shared-3d-scene-model).
+The protocol defines concrete 3D fields rather than leaving `fields` opaque: right-handed Y-up meter coordinates; vec2/vec3/vec4 and column-major matrix encodings; object transforms and hierarchy; bulk meshes and stable vertex/face entities; modifier inputs; metallic/roughness PBR materials; and hashed assets. See [the normative shared-scene model](SPECIFICATION.md#35-shared-3d-scene-model).
 
 ### Deterministic merge
 

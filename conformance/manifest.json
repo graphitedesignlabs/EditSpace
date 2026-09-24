@@ -11,6 +11,7 @@
     { "id": "wire.operation-full", "path": "conformance/fixtures/valid/operation-full.json", "valid": true, "required": true },
     { "id": "wire.equivalent-duplicate", "path": "conformance/fixtures/valid/equivalent-duplicate.json", "valid": true, "required": true },
     { "id": "wire.presence", "path": "conformance/fixtures/valid/presence.json", "valid": true, "required": true },
+    { "id": "wire.space-merge", "path": "conformance/fixtures/valid/space-merge.json", "valid": true, "required": true },
     { "id": "wire.shared-3d-scene", "path": "conformance/fixtures/valid/shared-3d-scene.json", "valid": true, "required": true },
     { "id": "wire.negative-sequence", "path": "conformance/fixtures/invalid/negative-sequence.json", "valid": false, "problem": "invalidOperation", "required": true },
     { "id": "wire.document-mismatch", "path": "conformance/fixtures/invalid/document-mismatch.json", "valid": false, "problem": "documentMismatch", "required": true },

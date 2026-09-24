@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.editspace.dev/schemas/space-merge-envelope-v1.schema.json",
+  "title": "EditSpace space merge envelope v1",
+  "type": "object",
+  "required": ["kind", "v", "declarations"],
+  "properties": {
+    "kind": { "const": "editspace.space-merges" },
+    "v": { "const": 1 },
+    "declarations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["first", "second"],
+        "properties": {
+          "first": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+          "second": { "$ref": "common-v1.schema.json#/$defs/identifier" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

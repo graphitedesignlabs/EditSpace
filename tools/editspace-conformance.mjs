@@ -207,6 +207,7 @@ async function validatorSet() {
 function schemaIDForMessage(message) {
   if (message?.kind === "editspace.operations") return "https://protocol.editspace.dev/schemas/operation-envelope-v1.schema.json";
   if (message?.kind === "editspace.presence") return "https://protocol.editspace.dev/schemas/presence-envelope-v1.schema.json";
+  if (message?.kind === "editspace.space-merges") return "https://protocol.editspace.dev/schemas/space-merge-envelope-v1.schema.json";
   return undefined;
 }
 

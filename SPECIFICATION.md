@@ -49,7 +49,7 @@ Every operation in `ops` MUST have the same `doc` space ID as its envelope. Enve
 | `doc` | REQUIRED | Shared-space identifier. |
 | `op` | REQUIRED | Globally unique immutable operation identifier. `actor:seq` is recommended. |
 | `actor` | REQUIRED | Stable author identifier. |
-| `seq` | REQUIRED | Actor-local monotonically increasing safe integer. |
+| `seq` | REQUIRED | Actor-local monotonically increasing safe integer. It is allocated across all spaces, not independently per space, so later space merges cannot create operation-ID collisions. |
 | `deps` | OPTIONAL | Unique causal predecessor operation IDs; defaults to `[]`. |
 | `action` | REQUIRED | Extensible action token. |
 | `entity` | REQUIRED | Extensible entity-kind token. |
@@ -62,6 +62,8 @@ Every operation in `ops` MUST have the same `doc` space ID as its envelope. Enve
 | `createdAt` | OPTIONAL | Informational creation timestamp. |
 
 An operation and all its members are immutable after publication. `op` identifies the complete decoded semantic value, including optional values after applying their defaults. Two encodings that differ only by omitted default members are therefore exact duplicates. Reusing `op` for different semantic content is an `operationIDCollision`; the later value MUST NOT replace the first.
+
+When spaces have been merged under section 3.4, implementations compare and route `doc` after resolving it to the component's canonical space ID. An implementation MAY create a canonicalized in-memory copy for an operation log that requires one space ID, but MUST preserve the original wire representation when forwarding or durably archiving it. Canonicalization alone does not create a distinct operation and MUST NOT change `op`, `actor`, `seq`, dependencies, content, or ordering stamp.
 
 `producer` contains required string members `app` and `library`, with optional `appVersion` and `libraryVersion`. Producer data and `createdAt` MUST NOT influence validation support, authorization, ordering, or materialization.
 
@@ -88,7 +90,25 @@ Action, entity, and feature domains are open. Extension tokens SHOULD use a reve
 
 For `link` and `unlink`, `entity` is the kind of both source and target. Cross-kind links require an extension action whose semantics declare both kinds.
 
-### 3.4 Shared 3D scene model
+### 3.4 Space merge envelope
+
+A space merge envelope records immutable declarations that previously distinct space identifiers refer to one logical shared space. It contains:
+
+| Member | Requirement | Meaning |
+| --- | --- | --- |
+| `kind` | REQUIRED | Exactly `editspace.space-merges`. |
+| `v` | REQUIRED | Envelope schema version; exactly `1` for this specification. |
+| `declarations` | REQUIRED | Array of zero or more merge declarations. |
+
+Each declaration contains `first` and `second` space identifiers. The pair is unordered semantically and producers MUST encode the lexicographically lesser identifier as `first`. Repeated declarations are exact idempotent duplicates. A declaration joining a space to itself is valid but has no effect.
+
+Declarations form an undirected graph. Every connected component is one logical space, and its canonical space ID is the lexicographically least member. Implementations MUST resolve aliases transitively. Applying the same declaration set in any grouping, arrival order, join order, or replay order MUST produce the same components and canonical identifiers.
+
+After a merge, operation envelopes addressed to any member of the component belong to the same logical space. Receivers MUST resolve both the envelope `doc` and operation `doc` before enforcing the expected-space check. Operations keep their original identity and stamp. Peers SHOULD exchange their complete retained declaration sets when negotiating or reconnecting so transitive merges converge without requiring the original participants to remain online. Authorization to accept a declaration is transport- or application-specific and outside this protocol.
+
+Space merge declarations are durable coordination metadata, not scene operations. They MUST NOT be inserted into the operation log or materialized as scene entities. Presence remains ephemeral and follows the resolved canonical space.
+
+### 3.5 Shared 3D scene model
 
 The `fields` object is not an opaque application dictionary for core entities. The field names and value shapes below are the interoperable EditSpace scene model. `create` supplies an entity's initial fields. `update` is a sparse field patch: omitted fields are unchanged, and each supplied top-level field is an independent last-writer-wins register. Arrays and nested objects are atomic values unless their contents are modeled as separate entities.
 

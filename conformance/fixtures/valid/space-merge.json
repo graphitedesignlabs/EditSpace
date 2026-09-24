@@ -1,0 +1,8 @@
+{
+  "kind": "editspace.space-merges",
+  "v": 1,
+  "declarations": [
+    { "first": "studio-a", "second": "studio-b" },
+    { "first": "studio-b", "second": "studio-c" }
+  ]
+}
