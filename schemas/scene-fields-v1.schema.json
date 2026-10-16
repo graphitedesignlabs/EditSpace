@@ -77,6 +77,7 @@
         "visible": { "type": "boolean" },
         "opacity": { "$ref": "#/$defs/unitInterval" },
         "meshID": { "$ref": "common-v1.schema.json#/$defs/identifier" },
+        "evaluatedMeshID": { "anyOf": [{ "$ref": "common-v1.schema.json#/$defs/identifier" }, { "type": "null" }] },
         "materialIDs": { "type": "array", "items": { "$ref": "common-v1.schema.json#/$defs/identifier" } },
         "modifierIDs": { "type": "array", "items": { "$ref": "common-v1.schema.json#/$defs/identifier" }, "uniqueItems": true }
       },

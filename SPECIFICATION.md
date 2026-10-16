@@ -147,7 +147,8 @@ Unknown fields are extensions and MUST use a collision-resistant prefix. Impleme
 | `pivot` | matrix4 | Local modeling pivot. |
 | `visible` | boolean | Scene visibility. |
 | `opacity` | number | Object opacity in `0...1`. |
-| `meshID` | entity ID | Referenced mesh entity. |
+| `meshID` | entity ID | Referenced authoritative source mesh entity. |
+| `evaluatedMeshID` | entity ID or null | Optional non-authoritative mesh cache containing the object's evaluated post-modifier geometry. |
 | `materialIDs` | entity-ID array | Ordered material slots. |
 | `modifierIDs` | entity-ID array | Ordered modifier stack. |
 
@@ -174,6 +175,8 @@ For fine-grained concurrent modeling, vertices and faces are separate stable ent
 #### `modifier` fields
 
 A modifier has required `objectID`, `modifierType`, `enabled`, and `order`. Its parameter fields are semantic inputs; generated geometry is a cache and MUST NOT be synchronized as authoritative state when the inputs are available.
+
+A producer MAY publish the complete evaluated post-modifier result as a mesh entity and reference it from the object with `evaluatedMeshID`. The producer SHOULD refresh that mesh whenever the visible modifier result changes and SHOULD set `evaluatedMeshID` to null when no evaluated cache is available. A receiver that supports the complete active modifier stack SHOULD evaluate the semantic inputs and ignore this cache. A receiver that cannot evaluate the complete stack MAY render the evaluated mesh instead. Receivers MUST NOT treat the evaluated mesh as modifier source geometry or apply the modifier stack to it.
 
 Core modifier types and fields include:
 

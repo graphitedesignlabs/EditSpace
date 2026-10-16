@@ -9,7 +9,8 @@ This repository publishes:
 - [`SPECIFICATION.md`](SPECIFICATION.md) for normative behavior;
 - [`schemas/`](schemas/) for machine-readable wire and result formats;
 - [`conformance/`](conformance/) for implementation-independent golden vectors;
-- [`tools/editspace-conformance.mjs`](tools/editspace-conformance.mjs) for validating schemas, messages, vectors, and implementation reports.
+- [`tools/editspace-conformance.mjs`](tools/editspace-conformance.mjs) for validating schemas, messages, vectors, and implementation reports;
+- [`Docs/EditSpace-Networking-Design.md`](Docs/EditSpace-Networking-Design.md) and its [PDF](Docs/EditSpace-Networking-Design.pdf) for the networking design plan.
 
 The maintained source of truth for protocol evolution is the [`editspace-swift`](https://github.com/graphitedesignlabs/editspace-swift) reference implementation. Language-neutral changes are periodically back-applied here, then consumed by implementations through a pinned revision of this repository.
 
