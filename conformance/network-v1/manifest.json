@@ -1,0 +1,17 @@
+{
+  "networkVersion": 1,
+  "messageSchema": "schemas/network-message-v1.schema.json",
+  "vectors": [
+    { "id": "network.negotiate-highest-common", "path": "conformance/network-v1/vectors/negotiate-highest-common.json", "required": true },
+    { "id": "network.choose-connection", "path": "conformance/network-v1/vectors/choose-connection.json", "required": true },
+    { "id": "network.select-spaces", "path": "conformance/network-v1/vectors/select-spaces.json", "required": true },
+    { "id": "network.request-missing-ranges", "path": "conformance/network-v1/vectors/request-missing-ranges.json", "required": true },
+    { "id": "network.prevent-implicit-forwarding", "path": "conformance/network-v1/vectors/prevent-implicit-forwarding.json", "required": true },
+    { "id": "network.encode-discovery-txt", "path": "conformance/network-v1/vectors/encode-discovery-txt.json", "required": true },
+    { "id": "network.parse-partial-frames", "path": "conformance/network-v1/vectors/parse-partial-frames.json", "required": true },
+    { "id": "network.enforce-frame-size", "path": "conformance/network-v1/vectors/enforce-frame-size.json", "required": true },
+    { "id": "network.enforce-message-order", "path": "conformance/network-v1/vectors/enforce-message-order.json", "required": true },
+    { "id": "network.complete-request-batches", "path": "conformance/network-v1/vectors/complete-request-batches.json", "required": true },
+    { "id": "network.detect-operation-collisions", "path": "conformance/network-v1/vectors/detect-operation-collisions.json", "required": true }
+  ]
+}

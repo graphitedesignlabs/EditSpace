@@ -1,0 +1,16 @@
+{
+  "id": "network.detect-operation-collisions",
+  "networkVersion": 1,
+  "operation": "detectCollisions",
+  "input": {
+    "operations": [
+      { "op": "a:1", "actor": "a", "seq": 1, "value": "first" },
+      { "op": "a:1", "actor": "a", "seq": 1, "value": "first" },
+      { "op": "a:1", "actor": "a", "seq": 1, "value": "changed" },
+      { "op": "a:2", "actor": "a", "seq": 1, "value": "different-id-same-sequence" }
+    ]
+  },
+  "expected": {
+    "results": ["accepted", "duplicate", "operationIDCollision", "actorSequenceCollision"]
+  }
+}

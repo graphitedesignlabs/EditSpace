@@ -1,5 +1,6 @@
 {
   "protocolVersion": 1,
+  "networkManifests": ["conformance/network-v1/manifest.json"],
   "policy": {
     "supportedOperationSchemaVersion": 1,
     "supportedActions": ["create", "update", "delete", "duplicate", "link", "unlink"],

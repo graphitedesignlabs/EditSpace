@@ -1,0 +1,17 @@
+{
+  "id": "network.enforce-message-order",
+  "networkVersion": 1,
+  "operation": "messageOrder",
+  "input": {
+    "sequences": [
+      ["editspace.network.hello", "editspace.network.space-selection", "editspace.network.history-summary", "editspace.network.operation-batch"],
+      ["editspace.network.history-summary"]
+    ]
+  },
+  "expected": {
+    "results": [
+      { "state": "synchronizing" },
+      { "error": "unexpectedMessage" }
+    ]
+  }
+}

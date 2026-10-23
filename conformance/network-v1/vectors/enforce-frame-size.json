@@ -1,0 +1,11 @@
+{
+  "id": "network.enforce-frame-size",
+  "networkVersion": 1,
+  "operation": "validateFrameLengths",
+  "input": {
+    "lengths": [0, 1, 16777216, 16777217]
+  },
+  "expected": {
+    "results": ["invalidFrame", "accepted", "accepted", "invalidFrame"]
+  }
+}

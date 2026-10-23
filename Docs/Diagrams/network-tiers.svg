@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title description">
+  <title id="title">EditSpace network protocol versions</title>
+  <desc id="description">Network v1 forms direct TCP links between every participating peer pair without forwarding. Network v2 adds an offline BLE mesh and optional remote peers reached through a hosted intermediary.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .title { font: 700 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .tier { font: 700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .label { font: 600 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .small { font: 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .edge { fill: none; stroke: #334155; stroke-width: 3; marker-start: url(#arrow); marker-end: url(#arrow); }
+      .optional { fill: none; stroke: #b45309; stroke-width: 3; stroke-dasharray: 9 7; marker-start: url(#arrow); marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1200" height="760" rx="24" fill="#ffffff"/>
+  <text x="48" y="54" class="title">One operation model, two network protocol versions</text>
+
+  <rect x="40" y="84" width="1120" height="190" rx="18" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="68" y="122" class="tier">Network v1 · Local LAN baseline</text>
+  <text x="68" y="150" class="small">DNS-SD discovers every participating pair; each pair opens its own direct TCP link.</text>
+  <rect x="150" y="178" width="164" height="60" rx="16" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <text x="232" y="214" text-anchor="middle" class="label">Peer A</text>
+  <rect x="514" y="178" width="164" height="60" rx="16" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <text x="596" y="214" text-anchor="middle" class="label">Peer B</text>
+  <rect x="878" y="178" width="164" height="60" rx="16" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <text x="960" y="214" text-anchor="middle" class="label">Peer C</text>
+  <path d="M 318 208 L 510 208" class="edge"/>
+  <path d="M 682 208 L 874 208" class="edge"/>
+  <path d="M 318 234 C 440 274, 752 274, 878 234" class="edge"/>
+  <text x="414" y="197" text-anchor="middle" class="small">TCP</text>
+  <text x="778" y="197" text-anchor="middle" class="small">TCP</text>
+  <rect x="514" y="250" width="164" height="22" rx="8" fill="#eff6ff"/>
+  <text x="596" y="267" text-anchor="middle" class="small">direct TCP · no relay</text>
+
+  <rect x="40" y="294" width="1120" height="190" rx="18" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
+  <text x="68" y="332" class="tier">Network v2 · Offline mesh</text>
+  <text x="68" y="360" class="small">BLE adds off-grid authentication, encrypted synchronization, and forwarding without a router.</text>
+  <rect x="150" y="388" width="164" height="60" rx="16" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+  <text x="232" y="424" text-anchor="middle" class="label">Peer A</text>
+  <rect x="514" y="388" width="164" height="60" rx="16" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+  <text x="596" y="424" text-anchor="middle" class="label">Peer B</text>
+  <rect x="878" y="388" width="164" height="60" rx="16" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+  <text x="960" y="424" text-anchor="middle" class="label">Peer C</text>
+  <path d="M 318 418 L 510 418" class="edge"/>
+  <path d="M 682 418 L 874 418" class="edge"/>
+  <path d="M 232 452 C 360 482, 832 482, 960 452" fill="none" stroke="#16a34a" stroke-width="4" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <rect x="438" y="451" width="316" height="27" rx="10" fill="#f0fdf4"/>
+  <text x="596" y="474" text-anchor="middle" class="small">optional authenticated LAN / direct Wi-Fi upgrade</text>
+
+  <rect x="40" y="504" width="1120" height="202" rx="18" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+  <text x="68" y="542" class="tier">Network v2 · Remote extension</text>
+  <text x="68" y="570" class="small">An internet-capable peer bridges opaque channel envelopes through a hosted intermediary.</text>
+  <rect x="94" y="608" width="210" height="60" rx="16" fill="#ffffff" stroke="#ea580c" stroke-width="2"/>
+  <text x="199" y="644" text-anchor="middle" class="label">Local mesh</text>
+  <rect x="394" y="608" width="210" height="60" rx="16" fill="#ffffff" stroke="#ea580c" stroke-width="2"/>
+  <text x="499" y="634" text-anchor="middle" class="label">Bridge peer</text>
+  <text x="499" y="655" text-anchor="middle" class="small">ordinary participant</text>
+  <rect x="694" y="608" width="210" height="60" rx="16" fill="#ffffff" stroke="#ea580c" stroke-width="2"/>
+  <text x="799" y="634" text-anchor="middle" class="label">Hosted relay</text>
+  <text x="799" y="655" text-anchor="middle" class="small">cannot decrypt</text>
+  <rect x="994" y="608" width="130" height="60" rx="16" fill="#ffffff" stroke="#ea580c" stroke-width="2"/>
+  <text x="1059" y="634" text-anchor="middle" class="label">Remote</text>
+  <text x="1059" y="655" text-anchor="middle" class="small">peer</text>
+  <path d="M 308 638 L 390 638" class="optional"/>
+  <path d="M 608 638 L 690 638" class="optional"/>
+  <path d="M 908 638 L 990 638" class="optional"/>
+
+  <text x="600" y="740" text-anchor="middle" class="small">Both versions carry the same durable EditSpace operations; v2 adds identity, encryption, and routing.</text>
+</svg>

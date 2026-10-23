@@ -1,0 +1,21 @@
+{
+  "id": "network.request-missing-ranges",
+  "networkVersion": 1,
+  "operation": "missingRanges",
+  "input": {
+    "local": [
+      { "actor": "artist-a", "ranges": [[1, 3], [8, 9]] },
+      { "actor": "artist-b", "ranges": [[2, 2]] }
+    ],
+    "remote": [
+      { "actor": "artist-a", "ranges": [[1, 10]] },
+      { "actor": "artist-b", "ranges": [[1, 4]] }
+    ]
+  },
+  "expected": {
+    "actors": [
+      { "actor": "artist-a", "ranges": [[4, 7], [10, 10]] },
+      { "actor": "artist-b", "ranges": [[1, 1], [3, 4]] }
+    ]
+  }
+}

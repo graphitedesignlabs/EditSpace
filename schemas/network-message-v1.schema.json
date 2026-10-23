@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://protocol.editspace.dev/schemas/network-message-v1.schema.json",
+  "title": "EditSpace network control message v1",
+  "anyOf": [
+    { "$ref": "#/$defs/networkHello" },
+    { "$ref": "#/$defs/spaceSelection" },
+    { "$ref": "#/$defs/historySummary" },
+    { "$ref": "#/$defs/requestOperations" },
+    { "$ref": "#/$defs/operationBatch" },
+    { "$ref": "#/$defs/syncComplete" },
+    { "$ref": "#/$defs/networkError" }
+  ],
+  "$defs": {
+    "positiveSafeInteger": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "identifier": {
+      "$ref": "common-v1.schema.json#/$defs/identifier"
+    },
+    "token": {
+      "$ref": "common-v1.schema.json#/$defs/token"
+    },
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "versions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/positiveSafeInteger" }
+    },
+    "spaceIDs": {
+      "type": "array",
+      "maxItems": 4096,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "range": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "common-v1.schema.json#/$defs/safeInteger" }
+    },
+    "actorRanges": {
+      "type": "object",
+      "required": ["actor", "ranges"],
+      "properties": {
+        "actor": { "$ref": "#/$defs/identifier" },
+        "ranges": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/range" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "networkHello": {
+      "type": "object",
+      "required": ["kind", "v", "networkVersions", "operationVersions", "peerID", "capabilities", "spaces"],
+      "properties": {
+        "kind": { "const": "editspace.network.hello" },
+        "v": { "const": 1 },
+        "networkVersions": { "$ref": "#/$defs/versions" },
+        "operationVersions": { "$ref": "#/$defs/versions" },
+        "peerID": { "$ref": "#/$defs/uuid" },
+        "capabilities": {
+          "type": "array",
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/token" }
+        },
+        "spaces": { "$ref": "#/$defs/spaceIDs" }
+      },
+      "additionalProperties": true
+    },
+    "spaceSelection": {
+      "type": "object",
+      "required": ["kind", "v", "spaces"],
+      "properties": {
+        "kind": { "const": "editspace.network.space-selection" },
+        "v": { "const": 1 },
+        "spaces": { "$ref": "#/$defs/spaceIDs" }
+      },
+      "additionalProperties": true
+    },
+    "historySummary": {
+      "type": "object",
+      "required": ["kind", "v", "summaryID", "doc", "actors", "spaceMerges"],
+      "properties": {
+        "kind": { "const": "editspace.network.history-summary" },
+        "v": { "const": 1 },
+        "summaryID": { "$ref": "#/$defs/identifier" },
+        "doc": { "$ref": "#/$defs/identifier" },
+        "actors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/actorRanges" }
+        },
+        "spaceMerges": { "$ref": "space-merge-envelope-v1.schema.json" }
+      },
+      "additionalProperties": true
+    },
+    "requestOperations": {
+      "type": "object",
+      "required": ["kind", "v", "requestID", "summaryID", "doc", "actors"],
+      "properties": {
+        "kind": { "const": "editspace.network.request-operations" },
+        "v": { "const": 1 },
+        "requestID": { "$ref": "#/$defs/identifier" },
+        "summaryID": { "$ref": "#/$defs/identifier" },
+        "doc": { "$ref": "#/$defs/identifier" },
+        "actors": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/actorRanges" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "operationBatch": {
+      "type": "object",
+      "required": ["kind", "v", "requestID", "final", "doc", "envelopes"],
+      "properties": {
+        "kind": { "const": "editspace.network.operation-batch" },
+        "v": { "const": 1 },
+        "requestID": {
+          "anyOf": [
+            { "$ref": "#/$defs/identifier" },
+            { "type": "null" }
+          ]
+        },
+        "final": { "type": "boolean" },
+        "doc": { "$ref": "#/$defs/identifier" },
+        "envelopes": {
+          "type": "array",
+          "items": { "$ref": "operation-envelope-v1.schema.json" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "syncComplete": {
+      "type": "object",
+      "required": ["kind", "v", "summaryID", "doc"],
+      "properties": {
+        "kind": { "const": "editspace.network.sync-complete" },
+        "v": { "const": 1 },
+        "summaryID": { "$ref": "#/$defs/identifier" },
+        "doc": { "$ref": "#/$defs/identifier" }
+      },
+      "additionalProperties": true
+    },
+    "networkError": {
+      "type": "object",
+      "required": ["kind", "v", "code", "fatal"],
+      "properties": {
+        "kind": { "const": "editspace.network.error" },
+        "v": { "const": 1 },
+        "code": {
+          "enum": [
+            "unsupportedNetworkVersion",
+            "unsupportedOperationVersion",
+            "unsupportedMessage",
+            "unexpectedMessage",
+            "invalidFrame",
+            "invalidMessage",
+            "invalidSelection",
+            "peerIDMismatch",
+            "resourceLimit",
+            "historyUnavailable",
+            "invalidOperation",
+            "operationIDCollision",
+            "actorSequenceCollision"
+          ]
+        },
+        "fatal": { "type": "boolean" },
+        "message": { "type": "string" },
+        "doc": { "$ref": "#/$defs/identifier" },
+        "requestID": { "$ref": "#/$defs/identifier" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

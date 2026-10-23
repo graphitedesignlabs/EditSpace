@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title description">
+  <title id="title">Offline operation propagation and link upgrade</title>
+  <desc id="description">An operation travels across authenticated BLE neighbors and converges after a partition. A faster IP link may replace or supplement BLE while preserving peer identity and session state.</desc>
+  <defs>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowSlate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title { font: 700 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .heading { font: 700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .label { font: 600 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .small { font: 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .step { font: 600 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1e3a8a; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="650" rx="24" fill="#ffffff"/>
+  <text x="48" y="54" class="title">Offline propagation and opportunistic link upgrade</text>
+
+  <rect x="40" y="88" width="690" height="510" rx="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="68" y="126" class="heading">Durable operation gossip</text>
+  <text x="68" y="154" class="small">Only admitted neighbors for the channel forward the ciphertext.</text>
+
+  <rect x="92" y="214" width="154" height="62" rx="16" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="169" y="242" text-anchor="middle" class="label">Peer A</text>
+  <text x="169" y="263" text-anchor="middle" class="small">origin</text>
+  <rect x="308" y="214" width="154" height="62" rx="16" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <text x="385" y="250" text-anchor="middle" class="label">Peer B</text>
+  <rect x="524" y="158" width="154" height="62" rx="16" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <text x="601" y="194" text-anchor="middle" class="label">Peer C</text>
+  <rect x="524" y="300" width="154" height="62" rx="16" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <text x="601" y="336" text-anchor="middle" class="label">Peer D</text>
+
+  <path d="M 250 245 L 304 245" fill="none" stroke="#2563eb" stroke-width="4" marker-end="url(#arrowBlue)"/>
+  <path d="M 466 232 L 520 204" fill="none" stroke="#2563eb" stroke-width="4" marker-end="url(#arrowBlue)"/>
+  <path d="M 466 258 L 520 315" fill="none" stroke="#2563eb" stroke-width="4" marker-end="url(#arrowBlue)"/>
+  <text x="277" y="230" text-anchor="middle" class="step">1</text>
+  <text x="493" y="203" text-anchor="middle" class="step">2</text>
+  <text x="493" y="301" text-anchor="middle" class="step">2</text>
+
+  <rect x="84" y="414" width="598" height="126" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <circle cx="112" cy="445" r="7" fill="#2563eb"/>
+  <text x="130" y="451" class="small">Validate signature, authorization, channel, and operation ID.</text>
+  <circle cx="112" cy="480" r="7" fill="#2563eb"/>
+  <text x="130" y="486" class="small">Append once; discard exact duplicates; report ID collisions.</text>
+  <circle cx="112" cy="515" r="7" fill="#2563eb"/>
+  <text x="130" y="521" class="small">After any partition, compare histories and request missing ranges.</text>
+
+  <rect x="760" y="88" width="400" height="510" rx="18" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
+  <text x="788" y="126" class="heading">Same session, faster bearer</text>
+  <text x="788" y="154" class="small">Correctness never depends on the upgrade.</text>
+
+  <rect x="820" y="194" width="280" height="58" rx="14" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+  <text x="960" y="228" text-anchor="middle" class="label">BLE link connected</text>
+  <path d="M 960 254 L 960 290" fill="none" stroke="#475569" stroke-width="3" marker-end="url(#arrowSlate)"/>
+  <rect x="820" y="294" width="280" height="70" rx="14" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+  <text x="960" y="323" text-anchor="middle" class="label">Exchange candidates</text>
+  <text x="960" y="346" text-anchor="middle" class="small">signed over authenticated BLE</text>
+  <path d="M 960 366 L 960 402" fill="none" stroke="#475569" stroke-width="3" marker-end="url(#arrowSlate)"/>
+  <rect x="820" y="406" width="280" height="70" rx="14" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+  <text x="960" y="435" text-anchor="middle" class="label">Authenticate IP link</text>
+  <text x="960" y="458" text-anchor="middle" class="small">same PeerID and channel session</text>
+  <path d="M 960 478 L 960 514" fill="none" stroke="#475569" stroke-width="3" marker-end="url(#arrowSlate)"/>
+  <rect x="820" y="518" width="280" height="50" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="960" y="549" text-anchor="middle" class="label">Prefer IP; retain BLE fallback</text>
+
+  <text x="600" y="630" text-anchor="middle" class="small">The operating system supplies bearer networking; EditSpace supplies authenticated links, reconciliation, and convergence.</text>
+</svg>

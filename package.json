@@ -5,9 +5,10 @@
   "description": "Language-neutral shared 3D space protocol definitions and conformance suite",
   "type": "module",
   "scripts": {
-    "test": "node tools/editspace-conformance.mjs test",
-    "validate": "node tools/editspace-conformance.mjs validate",
-    "conformance": "node tools/editspace-conformance.mjs conformance"
+    "test": "node tools/editspace-conformance.mjs test && node tools/editspace-network-conformance.mjs",
+    "validate": "node tools/editspace-conformance.mjs validate && node tools/editspace-network-conformance.mjs",
+    "conformance": "node tools/editspace-conformance.mjs conformance",
+    "network-conformance": "node tools/editspace-network-conformance.mjs"
   },
   "engines": {
     "node": ">=20"

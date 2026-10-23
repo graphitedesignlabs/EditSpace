@@ -1,0 +1,19 @@
+{
+  "id": "network.negotiate-highest-common",
+  "networkVersion": 1,
+  "operation": "negotiate",
+  "input": {
+    "left": {
+      "networkVersions": [2, 1],
+      "operationVersions": [2, 1]
+    },
+    "right": {
+      "networkVersions": [1],
+      "operationVersions": [3, 1]
+    }
+  },
+  "expected": {
+    "networkVersion": 1,
+    "operationVersion": 1
+  }
+}

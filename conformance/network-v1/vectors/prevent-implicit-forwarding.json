@@ -1,0 +1,17 @@
+{
+  "id": "network.prevent-implicit-forwarding",
+  "networkVersion": 1,
+  "operation": "eligibleExports",
+  "input": {
+    "targetNeighbor": "peer-c",
+    "items": [
+      { "id": "local-1", "origin": "local" },
+      { "id": "import-1", "origin": "application-import" },
+      { "id": "from-c", "origin": "peer-c" },
+      { "id": "from-b", "origin": "peer-b" }
+    ]
+  },
+  "expected": {
+    "itemIDs": ["from-c", "import-1", "local-1"]
+  }
+}

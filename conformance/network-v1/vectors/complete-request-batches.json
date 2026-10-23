@@ -1,0 +1,25 @@
+{
+  "id": "network.complete-request-batches",
+  "networkVersion": 1,
+  "operation": "completeRequestBatches",
+  "input": {
+    "requestID": "request-1",
+    "actors": [{ "actor": "artist-a", "ranges": [[4, 7]] }],
+    "batches": [
+      {
+        "requestID": "request-1",
+        "final": false,
+        "operations": [{ "actor": "artist-a", "seq": 4 }, { "actor": "artist-a", "seq": 5 }]
+      },
+      {
+        "requestID": "request-1",
+        "final": true,
+        "operations": [{ "actor": "artist-a", "seq": 6 }, { "actor": "artist-a", "seq": 7 }]
+      }
+    ]
+  },
+  "expected": {
+    "complete": true,
+    "operations": ["artist-a:4", "artist-a:5", "artist-a:6", "artist-a:7"]
+  }
+}

@@ -1,6 +1,6 @@
 # EditSpace Protocol
 
-![EditSpace](editspacebanner.png)
+![EditSpace](./editspacebanner.png)
 
 EditSpace is a language- and platform-neutral protocol for collaboratively creating and editing shared 3D spaces. A space is a synchronized 3D scene: its objects, transforms, geometry, materials, modifiers, assets, hierarchy, and collaborator presence. This repository is the final abstraction boundary: it defines interoperable data, behavior, and conformance, but contains no EditSpace implementation.
 
@@ -10,7 +10,9 @@ This repository publishes:
 - [`schemas/`](schemas/) for machine-readable wire and result formats;
 - [`conformance/`](conformance/) for implementation-independent golden vectors;
 - [`tools/editspace-conformance.mjs`](tools/editspace-conformance.mjs) for validating schemas, messages, vectors, and implementation reports;
-- [`Docs/EditSpace-Networking-Design.md`](Docs/EditSpace-Networking-Design.md) and its [PDF](Docs/EditSpace-Networking-Design.pdf) for the networking design plan.
+- [`Docs/EditSpace-Networking-Design.md`](Docs/EditSpace-Networking-Design.md) and its [PDF](Docs/EditSpace-Networking-Design.pdf) for the draft networking specification.
+
+Regenerate the networking PDF, including its SVG diagrams, with `./tools/render-networking-pdf.sh`. The renderer requires Pandoc plus either WeasyPrint or Chrome/Chromium; set `CHROME_BIN` when the browser is not in a standard location.
 
 The maintained source of truth for protocol evolution is the [`editspace-swift`](https://github.com/graphitedesignlabs/editspace-swift) reference implementation. Language-neutral changes are periodically back-applied here, then consumed by implementations through a pinned revision of this repository.
 
@@ -25,11 +27,22 @@ An implementation belongs in its language or platform repository. It should incl
 - Unknown future operations are preserved instead of silently overwritten.
 - Identity and presence belong to EditSpace, while each endpoint chooses how collaborators appear.
 
+## Networking protocol
+
+The networking specification separates two versions:
+
+1. network v1 is a small unencrypted trusted-LAN protocol using DNS-SD, direct TCP, length-prefixed JSON, and history reconciliation; and
+2. network v2 adds cryptographic identity, encrypted channels, BLE/off-grid forwarding, invitations, and hosted remote relay connections.
+
+Network v1 is the first interoperability target for Blender/Python, Apple, Android, Meta, desktop, and headless endpoints. Network and operation-schema versions are negotiated independently.
+
+V2 remote URL and QR invitations point to the hosted intermediary. A physical space may contain independently authorized and encrypted channels; intermediate devices and the intermediary route opaque envelopes without receiving channel keys. See the [draft networking specification](Docs/EditSpace-Networking-Design.md) for requirements and provisional v2 profiles.
+
 ## Reference implementation ecosystem
 
 The following diagram is informative rather than normative. It shows how the current Swift and Python implementations connect Graphite 3D and Blender to the shared protocol.
 
-![EditSpace specification, libraries, applications, and users](Docs/architecture.svg)
+![EditSpace specification, libraries, applications, and users](./Docs/architecture.png)
 
 ## Operation vocabulary
 
@@ -61,7 +74,7 @@ flowchart TB
     Order --> Scene["Disposable<br/>materialized scene"]
     Scene --> Adapter
 
-    Adapter <-->|"operation batches"| Relay["Transport, relay,<br/>or durable store"]
+    Adapter <-->|"signed, encrypted<br/>operation batches"| Relay["Peer link, blind relay,<br/>or durable store"]
     Adapter <-.->|"ephemeral presence"| Relay
     Adapter <-->|"asset IDs and hashes"| Assets["Out-of-band<br/>asset service"]
 ```
@@ -74,7 +87,7 @@ Peers that agree to share may publish `editspace.space-merges` declarations join
 
 ### Durable edits and ephemeral presence
 
-![EditSpace durable synchronization and ephemeral presence paths](Docs/sync-flow.svg)
+![EditSpace durable synchronization and ephemeral presence paths](./Docs/sync-flow.png)
 
 ## Edit operation packet example
 
@@ -273,13 +286,7 @@ EditSpace defines immutable 3D scene operations, the shared scene-field vocabula
 
 SDKs and protocol libraries that pass the EditSpace conformance suite may display the EditSpace compatibility badge.
 
-<a href="https://github.com/graphitedesignlabs/EditSpace">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="editspacecompatible-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="editspacecompatible-light.png">
-    <img alt="EditSpace compatible" src="editspacecompatible-light.png">
-  </picture>
-</a>
+[![EditSpace compatible](./editspacecompatible-light.png)](https://github.com/graphitedesignlabs/EditSpace)
 
 Add this HTML to the project's README:
 
@@ -297,13 +304,7 @@ Add this HTML to the project's README:
 
 Applications that implement EditTool using a conforming SDK may display the EditSpace Tool badge.
 
-<a href="https://github.com/graphitedesignlabs/EditSpace">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="editspacetool-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="editspacetool.png">
-    <img alt="An EditSpace Tool" src="editspacetool.png">
-  </picture>
-</a>
+[![An EditSpace Tool](./editspacetool.png)](https://github.com/graphitedesignlabs/EditSpace)
 
 Add this HTML to the application's README:
 

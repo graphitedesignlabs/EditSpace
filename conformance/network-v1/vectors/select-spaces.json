@@ -1,0 +1,14 @@
+{
+  "id": "network.select-spaces",
+  "networkVersion": 1,
+  "operation": "selectSpaces",
+  "input": {
+    "leftOffers": ["space-a", "space-shared"],
+    "rightOffers": ["space-b", "space-shared"],
+    "leftSelectsFromRight": ["space-b", "space-shared"],
+    "rightSelectsFromLeft": ["space-a"]
+  },
+  "expected": {
+    "activeSpaces": ["space-a", "space-b", "space-shared"]
+  }
+}

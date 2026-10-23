@@ -14,7 +14,7 @@ EditSpace is an application-, language-, platform-, transport-, and renderer-neu
 4. ephemeral peer identity and presence; and
 5. a common conformance contract.
 
-It does not define native APIs, a particular modeling-kernel or scene-graph implementation, renderer, UI, network topology, authentication, authorization, durable-store product, or asset-transfer service. A platform library implements this specification; it does not extend or redefine the core rules.
+It does not define native APIs, a particular modeling-kernel or scene-graph implementation, renderer, UI, durable-store product, or asset-transfer service. Network discovery, transport, synchronization, authentication, authorization, channel encryption, and relay behavior are specified separately in the draft `Docs/EditSpace-Networking-Design.md`. A platform library implements this specification; it does not extend or redefine the core rules.
 
 ## 2. JSON data model
 
@@ -283,7 +283,7 @@ A presence envelope contains `kind = editspace.presence`, `v = 1`, `doc`, and `p
 | `updatedAt` | REQUIRED | Sender timestamp. |
 | `timeToLiveSeconds` | REQUIRED | Positive safe-integer expiry interval. |
 
-A receiver retains only the greatest `sequence` observed for each `sessionID`. A non-expired `offline` record removes that session. Other records expire when receiver time is strictly later than `updatedAt + timeToLiveSeconds`. Authentication and authorization are transport concerns; presence identity is untrusted and grants no authority.
+A receiver retains only the greatest `sequence` observed for each `sessionID`. A non-expired `offline` record removes that session. Other records expire when receiver time is strictly later than `updatedAt + timeToLiveSeconds`. Authentication and authorization are outside the presence envelope and belong to the networking/session layer; presence identity is untrusted and grants no authority.
 
 ## 8. Synchronization and storage
 

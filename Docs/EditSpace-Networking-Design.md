@@ -1,317 +1,1120 @@
-# EditSpace Networking Design
+# EditSpace Networking Protocol
 
-Updated: September 2026  
-Status: design plan
+Updated: October 2026  
+Status: draft specification
 
-## Purpose
+The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT, and MAY are to be interpreted as described by RFC 2119 and RFC 8174 when they appear in uppercase.
 
-EditSpace networking exists to let people collaboratively edit a digitally augmented physical environment across heterogeneous spatial devices, nearby or remote, with or without infrastructure networking.
+## Contents
 
-The protocol should contain as little as possible, but not less than independently implemented adapters need to discover or invite one another, establish an authenticated session, join the same space, align with the physical environment when applicable, exchange edits, and converge after interruption.
+- [1. Scope](#1-scope)
+- [2. Protocol overview](#2-protocol-overview)
+- [3. Common terminology](#3-common-terminology)
+- [4. Version negotiation](#4-version-negotiation)
+- [5. Network Protocol v1](#5-network-protocol-v1)
+- [6. Network Protocol v2](#6-network-protocol-v2)
+- [7. Potential Network Protocol v3](#7-potential-network-protocol-v3)
+- [8. Conformance and development](#8-conformance-and-development)
 
-EditSpace is not a general desktop-to-desktop collaborative 3D authoring protocol. USD/USDZ remains the preferred interchange mechanism for conventional 3D authoring workflows. Desktop, Blender, and MCP endpoints participate as observers, remote assistants, automation clients, relays, or import/export adapters in support of an AR editing session.
+## 1. Scope
 
-## Design principles
+This document specifies how EditSpace endpoints discover peers, establish links, exchange durable operations, recover missing history, and optionally provide secure routed collaboration.
 
-1. The physical environment and its augmented scene are the primary shared subject.
-2. Durable operations are authoritative; snapshots and rendered scenes are caches.
-3. Network reachability, participation, scene synchronization, and spatial alignment are independent states.
-4. One stable peer identity survives changes between BLE, local IP, direct Wi-Fi, and relayed paths.
-5. BLE is both a discovery/bootstrap path and a complete constrained fallback transport.
-6. Implementations should prefer direct paths but must tolerate relays, disconnection, duplication, reordering, and delayed delivery.
-7. Vendor frameworks implement EditSpace behavior; they do not define EditSpace semantics.
-8. The protocol standardizes only the transport bindings required for independently written adapters to interoperate.
+The networking protocol is versioned independently from the EditSpace operation schema:
 
-## System boundary
+~~~text
+network protocol version
+    discovery, connection, framing, synchronization, security, and routing
 
-```text
-Host AR application
-        │
-Native scene and tracking adapter
-        │
-EditSpace operations, participation, sync, and alignment
-        │
-EditSpace connectivity profiles
-        │
-BLE │ LAN/Wired │ Wi-Fi Aware │ Apple P2P │ Internet/Relay
-```
+operation schema version
+    the representation and meaning of EditSpace operations
+~~~
 
-EditSpace defines observable messages and behavior. Platform adapters own ARKit or ARCore sessions, world maps, marker detection, sockets, radios, background execution, rendering, and user interface.
+Network v1 is the minimum interoperable LAN protocol. It is intended to be straightforward to implement in Blender Python, Apple applications, Android applications, Meta Quest applications, desktop tools, and headless processes.
 
-## Minimum normative protocol
+Network v2 extends the v1 synchronization model with cryptographic peer identity, authenticated admission, encrypted channels, BLE/off-grid links, peer forwarding, URL or QR invitations, and hosted remote relay connections.
 
-### 1. Scene operations
+This document does not alter operation validation, ordering, merge, or materialization semantics defined by the core EditSpace specification.
 
-The existing immutable operation envelopes, deterministic materialization, presence envelopes, and asset references remain the shared scene foundation. Network batching, splitting, retransmission, or forwarding must not change scene semantics.
+## 2. Protocol overview
 
-### 2. Peer identity and session authentication
+| Capability | Network v1 | Network v2 |
+| --- | --- | --- |
+| DNS-SD discovery on a LAN | Required | Required by LAN profile |
+| Direct TCP peer links | Required | Required by LAN profile |
+| Length-prefixed JSON frames | Required | Required by LAN profile |
+| History reconciliation | Required | Required |
+| Multiple direct peers | Required | Required |
+| Confidentiality | None | End-to-end encrypted channels |
+| Cryptographic peer identity | No | Required |
+| Channel admission and rekeying | No | Required |
+| Peer forwarding | No | Offline-mesh profile |
+| BLE transport | No | Offline-mesh profile |
+| Hosted intermediary | No | Remote profile |
+| URL or QR invitation | No | Remote profile |
+| Spatial alignment messages | No | Spatial profile |
 
-Every network-capable endpoint has a stable cryptographic peer identity. Peer identity is distinct from:
+![Network v1 forms an all-to-all graph of direct LAN connections with no intermediate forwarding; network v2 adds offline BLE routing and optional remote reachability without changing operation semantics.](./Diagrams/network-tiers.png)
+
+## 3. Common terminology
+
+**Endpoint**  
+An application or process implementing an EditSpace networking version.
+
+**Peer ID**  
+An endpoint identifier. In v1 it is an untrusted random identifier. In v2 it is derived from a cryptographic public key.
+
+**Operation version**  
+The version of an EditSpace operation or envelope schema, independent of the networking version.
+
+**Space**  
+A shared EditSpace scene identified by the core protocol `doc` value.
+
+**Link**  
+A bidirectional byte or message transport between two immediate peers.
+
+**Neighbor**  
+A peer connected by a direct link.
+
+**Channel**  
+A v2 membership, encryption, synchronization, and routing scope.
+
+**Relay**  
+A v2 peer or hosted intermediary that forwards opaque envelopes.
+
+## 4. Version negotiation
+
+### 4.1 Initial hello
+
+Every TCP connection begins with an unencrypted `networkHello` control message using the v1 frame encoding. Its control schema version is always `1`, including when peers intend to select network v2.
+
+~~~json
+{
+  "kind": "editspace.network.hello",
+  "v": 1,
+  "networkVersions": [1, 2],
+  "operationVersions": [1],
+  "peerID": "4d612e1c-fced-42a0-9a61-c1cb34d6b33f",
+  "capabilities": ["dns-sd", "tcp", "history-ranges"],
+  "spaces": ["space-123"]
+}
+~~~
+
+`networkVersions` and `operationVersions` MUST be nonempty arrays of unique positive safe integers in descending preference order. `capabilities` and `spaces` MUST contain unique strings. A v1-only endpoint MUST advertise exactly `networkVersions: [1]`.
+
+Peers MUST select the highest numerical network version both advertise and locally permit. They MUST independently select a mutually supported operation version. If either intersection is empty, the peers MUST close the connection and MAY first send `networkError`.
+
+### 4.2 Downgrade protection
+
+A v2 implementation MAY select v1 only when local policy explicitly permits an unencrypted trusted-LAN session. A secure channel or remote invitation MUST set:
+
+~~~json
+{
+  "minimumNetworkVersion": 2,
+  "encryptionRequired": true
+}
+~~~
+
+Such a session MUST NOT continue as v1. A peer MUST NOT interpret an inability to complete v2 authentication as permission to retry using v1.
+
+### 4.3 Capability negotiation
+
+Capabilities describe optional behavior and MUST NOT remove requirements of the selected version and profile. Unknown capability tokens MUST be ignored. A token SHOULD use lowercase ASCII words separated by hyphens. Extension tokens SHOULD use a reverse-DNS prefix.
+
+## 5. Network Protocol v1
+
+**Section 5 contents**
+
+- [5.1 Purpose and boundary](#51-purpose-and-boundary)
+- [5.2 Peer identity](#52-peer-identity)
+- [5.3 DNS-SD discovery](#53-dns-sd-discovery)
+- [5.4 TCP peer links](#54-tcp-peer-links)
+- [5.5 Frame encoding](#55-frame-encoding)
+- [5.6 Control messages](#56-control-messages)
+- [5.7 Synchronization](#57-synchronization)
+- [5.8 Multiple-peer behavior](#58-multiple-peer-behavior)
+- [5.9 Platform bindings](#59-platform-bindings)
+- [5.10 Security considerations](#510-security-considerations)
+- [5.11 Conformance](#511-conformance)
+
+### 5.1 Purpose and boundary
+
+V1 provides automatic discovery and operation synchronization between directly connected peers on a trusted local IP network:
+
+~~~text
+advertise and browse _editspace._tcp.local.
+→ establish one TCP connection for each peer pair
+→ exchange networkHello
+→ exchange spaceSelection
+→ reconcile retained histories
+→ exchange live EditSpace operations
+~~~
+
+V1 deliberately does not define:
+
+- encryption or transport confidentiality;
+- authentication or authorization;
+- invitation codes;
+- BLE;
+- peer-to-peer forwarding;
+- hosted intermediaries;
+- NAT traversal;
+- asset byte transfer;
+- presence transport; or
+- spatial alignment.
+
+V1 applications MUST describe the mode as unencrypted. They MUST NOT claim that a v1 Peer ID proves a device, person, account, or operation author.
+
+### 5.2 Peer identity
+
+On first use, an endpoint MUST generate a random UUID and persist it as its v1 Peer ID. Producers MUST encode it as a lowercase RFC 4122 UUID string with hyphens.
+
+The Peer ID is used only for:
+
+- recognizing the endpoint after reconnect;
+- ignoring the endpoint's own DNS-SD advertisement;
+- deterministically choosing which peer initiates TCP; and
+- indexing connection and synchronization state.
+
+Deleting application data MAY generate a new Peer ID. Copying one installation's Peer ID to another concurrently running endpoint is invalid.
+
+Peer IDs are transport identities, not operation actor IDs. One endpoint MAY store operations from multiple actors, and the same actor MAY use different endpoints. V1 does not authenticate either identifier or bind one to the other.
+
+### 5.3 DNS-SD discovery
+
+#### 5.3.1 Service
+
+A v1 endpoint MUST advertise and browse the DNS-SD service:
+
+~~~text
+service type: _editspace._tcp
+domain:       local.
+full type:    _editspace._tcp.local.
+~~~
+
+The DNS-SD SRV record supplies the listening host and TCP port. An endpoint SHOULD request an ephemeral listening port from the operating system rather than hard-code one. The service instance name is presentation metadata and MUST NOT be used as peer identity.
+
+The v1 wire service name is `_editspace._tcp` and MUST NOT be changed by platform bindings. Formal service-name registration is a deployment task and does not alter the wire value.
+
+#### 5.3.2 TXT record
+
+A v1 advertisement MUST contain these TXT keys:
+
+| Key | Value |
+| --- | --- |
+| `net` | Comma-separated supported network versions, highest first; v1-only is `1` |
+| `ops` | Comma-separated supported operation versions, highest first |
+| `peer` | Canonical v1 Peer ID |
+| `caps` | Comma-separated capability tokens; MUST include `tcp` and `history-ranges` |
+
+TXT keys are lowercase ASCII. Each required key occurs exactly once. `net` and `ops` contain unique positive safe integers in descending numerical order, encoded in base ten without signs, whitespace, or leading zeroes. `caps` contains unique lowercase ASCII tokens in lexical order. Empty list elements are invalid.
+
+Each DNS-SD `key=value` string MUST be at most 255 UTF-8 bytes, and the complete encoded TXT record MUST be at most 1,300 bytes. A producer whose optional capabilities do not fit MUST omit optional capability tokens rather than truncate a value. Unknown keys MUST be ignored. A record with a missing, duplicate, malformed, or unsupported required value is incompatible and MUST NOT trigger a connection.
+
+The `peer` value MUST use the canonical UUID spelling from section 5.2. The `net` and `ops` values are discovery hints; the arrays in `networkHello` are authoritative.
+
+A v1 endpoint MUST NOT advertise space IDs, drawing names, scene contents, participant names, or operation data in DNS-SD.
+
+#### 5.3.3 Discovery behavior
+
+When an endpoint discovers a record with its own Peer ID, it MUST ignore it. When it discovers a compatible remote Peer ID, it evaluates the TCP initiation rule in section 5.4.2.
+
+An endpoint MUST group advertisements by Peer ID. Multiple service instances or addresses carrying one Peer ID describe candidate routes to one endpoint, not distinct peers. The endpoint MUST resolve the SRV target and port and then try the resolved IPv6 and IPv4 addresses according to local address-selection policy. Failure of one address MUST NOT prevent trying another address for the same advertisement.
+
+DNS-SD instance-name collision renaming is valid and has no protocol meaning. A changed SRV target, port, address set, or TXT record replaces the previous candidates for future connection attempts but does not terminate a working TCP link.
+
+Discovery loss does not prove a TCP link is dead. Link viability is determined by the TCP connection. After link failure, the designated initiator MUST retry while a compatible advertisement remains visible. Retries MUST use randomized exponential backoff beginning no later than one second after the first failure and capped at 30 seconds. Reappearance of a service resets the backoff.
+
+An implementation MAY impose a user-visible upper bound on simultaneously participating peers, but it MUST continue browsing so additional candidates remain visible. Candidates beyond the bound MAY remain unconnected or receive an empty selection. The bound MUST permit at least eight simultaneous peers for v1 conformance.
+
+### 5.4 TCP peer links
+
+#### 5.4.1 Listener
+
+Every endpoint MUST listen for TCP connections on its advertised port while its v1 service is active. The endpoint MUST accept IPv4 or IPv6 addresses supplied by DNS-SD resolution according to platform availability.
+
+An inbound connection does not require the caller to have been discovered first. The listener learns the remote Peer ID from `networkHello`. If it has a matching DNS-SD record, the hello Peer ID MUST equal that record's `peer` value. If it has no matching record, it associates the connection with the hello Peer ID after validating the ID and the connection-direction rule.
+
+#### 5.4.2 Deterministic initiator
+
+For two Peer IDs compared as ASCII strings:
+
+- the endpoint with the lexicographically smaller Peer ID MUST initiate; and
+- the endpoint with the larger Peer ID MUST wait for the inbound connection.
+
+If simultaneous or stale discovery nevertheless creates duplicate connections, both peers MUST retain the connection initiated by the smaller Peer ID and close the other. A peer MUST have at most one active v1 link to a given Peer ID.
+
+After receiving both hellos, a peer MUST close a connection initiated by the lexicographically larger Peer ID. If more than one correctly directed connection exists, both peers retain the connection whose initiator-side TCP source port is numerically smaller and close the others. This tie-breaker is evaluated using the ports from the established TCP connections and is used only for duplicates between the same Peer IDs.
+
+A connection whose remote Peer ID equals the local Peer ID is invalid and MUST be closed with `peerIDMismatch`. Two different reachable endpoints using the same remote Peer ID are an invalid deployment; an implementation MUST treat them as one peer and MAY report a diagnostic.
+
+#### 5.4.3 Connection lifecycle
+
+Each endpoint MUST send `networkHello` immediately after connection establishment. It MUST NOT send history or operation messages until both hellos have been received and a version pair selected.
+
+TCP delivery does not replace history reconciliation. After every reconnect, peers MUST repeat the procedure in section 5.7.
+
+The v1 connection state machine is:
+
+~~~text
+TCP connected
+→ hello: exchange networkHello
+→ selection: exchange spaceSelection
+→ synchronizing: exchange summaries, requests, and batches
+→ live: continue batches and repeat reconciliation as needed
+→ closed
+~~~
+
+In `hello`, only `networkHello` and `networkError` are permitted. In `selection`, only `spaceSelection` and `networkError` are permitted. Synchronization messages are permitted after both selections have arrived. `networkError` is permitted in every state. A message received before its permitted state is `unexpectedMessage`.
+
+An endpoint MUST allow at least 30 seconds for the remote hello and at least 30 seconds for the remote selection. During synchronization it MUST allow at least 120 seconds without receiving bytes or completing a requested batch before treating the link as stalled. Implementations MAY wait longer. A timeout closes the connection; reconnection begins with a new hello and full reconciliation. TCP keepalive MAY be enabled but does not replace these protocol rules.
+
+The connection is `live` when both peers have reached pairwise completion for every active space. Live connections continue to accept batches and may return to synchronization whenever eligible history changes.
+
+On orderly EOF, reset, timeout, or network change, an endpoint discards partial frames and all connection-scoped summary and request IDs. Durable operations already accepted remain stored. If discovery still supplies a candidate, only the designated initiator reconnects.
+
+### 5.5 Frame encoding
+
+Every v1 frame is:
+
+~~~text
+uint32 big-endian payload length
+payload-length bytes of UTF-8 JSON
+~~~
+
+The payload MUST decode to one JSON object. Duplicate JSON keys, invalid UTF-8, non-object roots, and non-finite JSON numbers MUST be rejected.
+
+A zero-length payload is invalid. A v1 endpoint MUST accept payloads up to and including 16,777,216 bytes and MUST NOT send a larger payload. It MUST reject an oversized length before allocating or waiting for the declared payload. Large operation sets MUST be divided among multiple `operationBatch` messages. A single operation that cannot fit in one conforming frame cannot be transported by v1 and MUST NOT be published into a space advertised through v1.
+
+TCP reads MAY split either the length or payload at any byte. Implementations MUST buffer partial frames and MUST process multiple frames received in one TCP read.
+
+Frames are processed in TCP order. JSON member order and insignificant whitespace have no meaning, and v1 does not require canonical JSON serialization. A framing, UTF-8, duplicate-key, or JSON-root failure is `invalidFrame`: the receiver SHOULD send a fatal `networkError` if it can do so safely, then MUST close the connection. EOF in the middle of a frame discards that frame and closes the connection without accepting its partial contents.
+
+### 5.6 Control messages
+
+#### 5.6.1 Common message rules
+
+Every v1 control message has string `kind` and integer `v` members. `v` is the networking control-message schema version and MUST equal `1`; it is not the selected operation version. Unknown members MUST be ignored and SHOULD be retained when an unmodified message is logged or proxied. Unknown control-message kinds result in `networkError` with code `unsupportedMessage`.
+
+Unless a member says otherwise:
+
+- an identifier is a nonempty string of at most 1,024 Unicode scalar values, as defined by the core specification;
+- an array described as unique contains no two structurally equal values;
+- protocol string comparison uses Unicode scalar order, never locale collation;
+- integers are JSON safe integers in `0...9007199254740991`;
+- required members are present and have the stated type; and
+- a structurally invalid control message is `invalidMessage`.
+
+A sender MUST NOT emit a control message larger than the frame limit. `networkHello` and `historySummary` are each one indivisible message. An endpoint MUST NOT offer a space whose complete v1 summary cannot fit in one frame.
+
+The selected network version and selected operation version are connection-scoped. Network v1 implementations conforming to this specification MUST support operation version 1. Every operation and space-merge envelope sent on the connection MUST use the selected operation version; v1 performs no schema conversion. An endpoint's advertised `operationVersions` MUST include only versions in which it can represent the complete eligible history of every space offered in that hello. It MUST omit a space that cannot satisfy this rule.
+
+#### 5.6.2 `networkHello`
+
+`networkHello` has:
+
+| Member | Requirement | Meaning |
+| --- | --- | --- |
+| `kind` | REQUIRED | Exactly `editspace.network.hello` |
+| `v` | REQUIRED | Exactly `1` |
+| `networkVersions` | REQUIRED | Supported networking versions |
+| `operationVersions` | REQUIRED | Supported core operation versions |
+| `peerID` | REQUIRED | Sender's Peer ID |
+| `capabilities` | REQUIRED | Supported capability tokens |
+| `spaces` | REQUIRED | Space IDs the endpoint is willing to offer for local synchronization |
+
+`networkVersions` and `operationVersions` are unique arrays of 1 to 32 positive safe integers in descending preference order. `capabilities` is a unique array of at most 128 strings and MUST contain `dns-sd`, `tcp`, and `history-ranges`. `spaces` is a unique array of at most 4,096 identifiers. A v1-only endpoint emits `networkVersions: [1]`.
+
+On an outbound connection, the remote Peer ID MUST equal the DNS-SD `peer` value used to discover that endpoint. On an inbound connection without a prior matching discovery record, the valid hello establishes the remote Peer ID. Equality detects configuration errors but does not establish trust because v1 is unauthenticated.
+
+After both hellos, each endpoint selects the highest network version present in both arrays and allowed by local policy, then independently selects the highest mutually supported operation version. The endpoints MUST reach the same result. No intersection is respectively `unsupportedNetworkVersion` or `unsupportedOperationVersion` and is fatal.
+
+#### 5.6.3 `spaceSelection`
+
+~~~json
+{
+  "kind": "editspace.network.space-selection",
+  "v": 1,
+  "spaces": ["space-123"]
+}
+~~~
+
+`spaces` is a unique array of at most 4,096 space IDs selected from the spaces offered in the remote endpoint's hello. Each endpoint MUST send exactly one `spaceSelection`, including when the array is empty. Selecting an unoffered space is `invalidSelection` and is fatal.
+
+An offered space becomes active when the remote endpoint selects it. This is mutual consent: one endpoint offered the space and the other explicitly accepted it. If both endpoints offer the same space, either endpoint's selection activates it. The complete active set is the union of the two valid selections and is therefore identical at both endpoints.
+
+Selections cannot be changed on an established v1 connection. To change them, an endpoint reconnects and repeats negotiation. A selection authorizes synchronization only for that connection and does not prove identity or grant durable authority outside local application policy.
+
+#### 5.6.4 `historySummary`
+
+~~~json
+{
+  "kind": "editspace.network.history-summary",
+  "v": 1,
+  "summaryID": "summary-a-1",
+  "doc": "space-123",
+  "actors": [
+    {
+      "actor": "artist-a",
+      "ranges": [[1, 14], [18, 22]]
+    }
+  ],
+  "spaceMerges": {
+    "kind": "editspace.space-merges",
+    "v": 1,
+    "declarations": []
+  }
+}
+~~~
+
+`summaryID` is a connection-unique identifier that MUST NOT be reused. `doc` identifies an active space component. `actors` contains at most one entry per actor and MUST be sorted by actor ID. Each actor entry contains identifier `actor` and nonempty `ranges`. Each range is an inclusive `[first, last]` pair of safe integers with `first <= last`. Ranges MUST be sorted by `first`, non-overlapping, and non-adjacent. They describe every valid durable operation eligible for export to that neighbor under section 5.7; gaps are valid because actor sequences are allocated globally across spaces.
+
+`spaceMerges` is one complete core `editspace.space-merges` envelope using the selected operation version. It contains every retained declaration connected to `doc` that is eligible for export to that neighbor under section 5.7. A receiver MUST validate and apply the declarations before resolving `doc`, checking operation membership, or comparing histories. According to the resulting component, `doc` MUST be its canonical space ID.
+
+The summary is an atomic snapshot. After sending it, the sender MUST retain and be able to return every advertised operation until it sends a newer summary for that space or the connection closes. V1 defines no snapshot replacement for discarded history; an endpoint MUST therefore retain every accepted durable operation and merge declaration for every space it offers.
+
+#### 5.6.5 `requestOperations`
+
+~~~json
+{
+  "kind": "editspace.network.request-operations",
+  "v": 1,
+  "requestID": "request-b-7",
+  "summaryID": "summary-a-1",
+  "doc": "space-123",
+  "actors": [
+    {
+      "actor": "artist-a",
+      "ranges": [[4, 7]]
+    }
+  ]
+}
+~~~
+
+`requestID` is a connection-unique identifier that MUST NOT be reused. `summaryID` identifies the remote summary being queried. `doc` MUST equal that summary's resolved space. The actor ordering and range rules from `historySummary` apply.
+
+A requester MUST include only sequences advertised by the identified summary and absent from its accepted local history. It MUST NOT have more than 16 incomplete requests outstanding to one peer. Reuse of an ID, an unknown or superseded summary, an unadvertised sequence, or a request outside an active space is `invalidMessage`.
+
+#### 5.6.6 `operationBatch`
+
+~~~json
+{
+  "kind": "editspace.network.operation-batch",
+  "v": 1,
+  "requestID": "request-b-7",
+  "final": true,
+  "doc": "space-123",
+  "envelopes": [
+    {
+      "kind": "editspace.operations",
+      "v": 1,
+      "doc": "space-123",
+      "ops": []
+    }
+  ]
+}
+~~~
+
+`requestID` is either the identifier of the request being answered or JSON `null` for unsolicited live delivery. `final` is a boolean. A live batch MUST use `requestID: null` and `final: true`.
+
+`envelopes` contains zero or more core `editspace.operations` envelopes using the selected operation version. Every envelope and included operation MUST resolve to the batch's `doc` space component after applying accepted merge declarations. A receiver validates and imports each operation using the core specification.
+
+For a requested response, every operation MUST have the requested actor and a sequence within a requested range. The responder sends each matching advertised operation exactly once across one or more batches with that `requestID`, in any order. All but the last batch use `final: false`; exactly one last batch uses `final: true`. An empty final batch is valid. A response MUST NOT include live or unrelated operations. A missing advertised operation is `historyUnavailable`; the responder sends a nonfatal error for the request and MUST NOT send a successful final batch.
+
+An exact duplicate is harmless and MUST NOT be appended twice. Reuse of one operation ID for different semantic content is an `operationIDCollision` and MUST be reported. One invalid operation MUST NOT cause valid independent operations in the batch to be discarded.
+
+For one actor, two semantically different operations using the same `seq` are an `actorSequenceCollision`; the later received operation is rejected. A structurally invalid envelope is rejected as a unit, but other envelopes in the batch remain independently processable. Valid independent operations are durably appended before the receiver considers a requested batch complete.
+
+#### 5.6.7 `syncComplete`
+
+~~~json
+{
+  "kind": "editspace.network.sync-complete",
+  "v": 1,
+  "summaryID": "summary-a-2",
+  "doc": "space-123"
+}
+~~~
+
+`summaryID` identifies the remote summary against which completion was established. A peer sends `syncComplete` only after all its requests against that summary have received final batches, all valid returned operations are durable, and comparison finds no advertised operation missing locally. Receipt describes pairwise state at that instant; it is not a permanent global-completion claim.
+
+#### 5.6.8 `networkError`
+
+~~~json
+{
+  "kind": "editspace.network.error",
+  "v": 1,
+  "code": "unsupportedNetworkVersion",
+  "fatal": true,
+  "message": "No mutually supported networking version"
+}
+~~~
+
+`code` is a stable machine-readable token. `fatal` is a required boolean. Optional `message` is diagnostic text and MUST NOT affect behavior. Optional `doc` and `requestID` identify an affected space or request. A receiver MUST NOT answer `networkError` with another error.
+
+| Code | Fatal | Meaning |
+| --- | --- | --- |
+| `unsupportedNetworkVersion` | yes | No permitted network version intersects |
+| `unsupportedOperationVersion` | yes | No usable operation version intersects |
+| `unsupportedMessage` | yes | Message kind is unknown |
+| `unexpectedMessage` | yes | Message is not permitted in the current state |
+| `invalidFrame` | yes | Framing, UTF-8, JSON, or duplicate-key failure |
+| `invalidMessage` | yes | Control-message structure or cross-message reference is invalid |
+| `invalidSelection` | yes | A peer selected a space it was not offered |
+| `peerIDMismatch` | yes | Peer identity conflicts with discovery, self, or connection state |
+| `resourceLimit` | yes | A mandatory limit cannot be honored safely |
+| `historyUnavailable` | no | An advertised requested operation is unavailable; abort that request and space synchronization |
+| `invalidOperation` | no | One operation failed core validation |
+| `operationIDCollision` | no | One operation ID has conflicting semantic content |
+| `actorSequenceCollision` | no | One actor sequence identifies different operations |
+
+The sender MUST use the listed `fatal` value. After sending or receiving a fatal error, an endpoint MUST close the TCP connection after flushing the error if practical. A nonfatal operation error rejects only the affected operation. `historyUnavailable` aborts the identified request and prevents `syncComplete` for that space on the current connection.
+
+### 5.7 Synchronization
+
+After both `spaceSelection` messages arrive, each peer performs this procedure independently for every active space:
+
+~~~text
+send a fresh historySummary
+→ apply received space-merge declarations
+→ compare retained actor ranges
+→ request every missing advertised range
+→ receive one or more operationBatch messages through final=true
+→ durably validate and append valid operations
+→ receive and compare a new historySummary
+→ send syncComplete referencing that summary when nothing remains missing
+~~~
+
+A peer MUST durably append its own operation before advertising or sending it. Imported operations MUST be appended idempotently before being included in a later summary. A responder MUST send a fresh summary after completing all requests against its preceding summary. A receiver whose accepted history changes during comparison MUST invalidate its local comparison result and compare again.
+
+At most one summary per peer and active space is current. A newer valid summary supersedes the earlier summary after outstanding requests against the earlier summary have completed. Requests already accepted against an older summary remain valid because the sender must retain its advertised snapshot until those requests finish.
+
+Peers MAY request multiple actors or ranges in one request and MAY have up to 16 requests in flight, but request completion does not imply synchronization completion. Only `syncComplete` tied to a post-transfer summary asserts that the receiver has no missing advertised operation at that instant.
+
+After initial synchronization, a peer SHOULD send newly eligible local operations promptly in live `operationBatch` messages to every directly connected peer with that active space. It then sends a new summary. It MUST still reconcile after reconnection because a write to a TCP socket does not prove durable receipt.
+
+V1 history export is neighbor-specific. For a given neighbor, a summary and requested response include only:
+
+- operations and merge declarations authored or created locally;
+- operations and declarations explicitly imported and approved for sharing by a local application action; and
+- operations and declarations previously received from that same neighbor, so receipt can be confirmed.
+
+An item received from one network neighbor is not eligible for export to a different neighbor merely because it is retained locally. Promoting such an item for wider sharing requires explicit local application action and does not change its immutable wire value. Implementations MUST retain provenance sufficient to enforce this rule.
+
+If new eligible history arrives while summaries are being compared, peers repeat the comparison. Pairwise synchronization converges when both peers have sent `syncComplete` against current summaries. A later local operation, merge declaration, or reconnect begins another reconciliation round.
+
+### 5.8 Multiple-peer behavior
+
+An endpoint MAY maintain direct links to multiple peers:
+
+~~~text
+              Peer B
+                │
+Peer C ───── Blender A ───── Peer D
+~~~
+
+V1 is not a mesh-routing protocol. A peer MUST NOT forward an operation or merge declaration received from one neighbor to another merely because both use v1. Each endpoint sends only:
+
+- operations it authored locally; and
+- operations explicitly imported into a local space by application action.
+
+Every conforming endpoint MUST attempt a direct link to every discovered compatible endpoint, subject to explicit local participation policy and the minimum eight-peer capacity. Every pair that activates a common space communicates directly. Operation IDs make duplicate direct delivery harmless.
+
+### 5.9 Platform bindings
+
+All platform bindings MUST publish and browse the same DNS-SD service, interpret the same TXT keys, open ordinary TCP streams, and implement the same decoded JSON semantics. JSON whitespace and object-member order MAY differ.
+
+Conformance applies while an endpoint declares its v1 service active. V1 does not require an application to remain active in the background when its operating system suspends networking. Before suspension or intentional shutdown, an endpoint SHOULD withdraw its advertisement and close links when the platform provides time to do so. On resume it republishes, reconnects, and performs full reconciliation.
+
+#### 5.9.1 Apple
+
+Apple implementations SHOULD use Bonjour through Network framework. Applications MUST declare the Bonjour service type and local-network privacy usage required by the target operating system.
+
+#### 5.9.2 Android and Meta Quest
+
+Android implementations SHOULD use Network Service Discovery or another conforming DNS-SD implementation plus ordinary sockets. They MUST account for multicast reception, application lifecycle, network changes, and the permission behavior of supported OS versions.
+
+Meta Quest implementations use the Android binding where the runtime permits it. Conformance MUST be demonstrated on representative Quest hardware; Android API compatibility alone is not proof of multicast behavior.
+
+### 5.10 Security considerations
+
+V1 provides neither confidentiality nor peer authentication. Any party able to observe or modify the LAN may read, inject, alter, replay, or suppress traffic. Peer IDs and offered space IDs are untrusted.
+
+An application MUST require explicit local policy before enabling v1 on an untrusted or public network. Sensitive spaces MUST require v2. A v1 implementation SHOULD make its unencrypted state visible to the user.
+
+Core operation validation and deterministic collision handling remain required, but they do not make an unauthenticated sender trustworthy.
+
+### 5.11 Conformance
+
+A conforming v1 endpoint MUST:
+
+1. advertise and browse the normative DNS-SD service;
+2. implement the required TXT keys;
+3. establish exactly one TCP link per participating peer pair;
+4. implement the frame decoder including partial reads and size checks;
+5. implement the connection state machine and required timeout minima;
+6. negotiate networking and operation versions;
+7. explicitly exchange space selections;
+8. implement every v1 control message and stable error behavior;
+9. correlate summaries, requests, final batches, and completion IDs;
+10. reconcile missing history after every connection;
+11. deduplicate immutable operations and report both ID and actor-sequence collisions;
+12. preserve provenance and prevent implicit forwarding between neighbors;
+13. exchange live eligible operations with all participating direct peers; and
+14. pass every required v1 networking fixture and deterministic scenario vector.
+
+Interoperability MUST be demonstrated with an independently implemented peer. Two instances of one library are insufficient evidence of cross-platform conformance.
+
+The normative structural schema is `schemas/network-message-v1.schema.json`. Stateful behavior that JSON Schema cannot express—including message order, range containment, snapshot retention, collision handling, reconnection, and non-forwarding—is normative in this document and MUST be exercised by the networking vectors listed in `conformance/network-v1/manifest.json`.
+
+## 6. Network Protocol v2
+
+**Section 6 contents**
+
+- [6.1 Status and profiles](#61-status-and-profiles)
+- [6.2 Cryptographic peer identity](#62-cryptographic-peer-identity)
+- [6.3 Discovery and invitation](#63-discovery-and-invitation)
+- [6.4 Peer-link abstraction](#64-peer-link-abstraction)
+- [6.5 Session and admission](#65-session-and-admission)
+- [6.6 Encrypted collaboration channels](#66-encrypted-collaboration-channels)
+- [6.7 Offline mesh](#67-offline-mesh)
+- [6.8 BLE binding](#68-ble-binding)
+- [6.9 High-throughput upgrade](#69-high-throughput-upgrade)
+- [6.10 Remote profile](#610-remote-profile)
+- [6.11 Routing and scale](#611-routing-and-scale)
+- [6.12 Traffic classes](#612-traffic-classes)
+- [6.13 Spatial profile](#613-spatial-profile)
+- [6.14 Conformance](#614-conformance)
+
+### 6.1 Status and profiles
+
+V2 is a provisional extension specification. The observable behavior in this part is the design target, but v2 cannot become normative until the group-security suite, authenticated handshake, BLE binding constants, and hosted-relay wire contract are frozen and represented by conformance vectors.
+
+V2 consists of additive profiles:
+
+| Profile | Required behavior |
+| --- | --- |
+| Secure LAN | Cryptographic identity, authentication, participation, encrypted channels over local IP |
+| Offline mesh | BLE discovery and transport, multi-peer forwarding, partition recovery, optional IP upgrade |
+| Remote | Hosted-intermediary connection, opaque relay, URL/QR invitation, local/remote bridging |
+| Spatial | Independent alignment state and opaque alignment payloads |
+
+An endpoint MAY implement only the profiles relevant to its platform. Blender may implement Secure LAN without BLE or spatial alignment.
+
+### 6.2 Cryptographic peer identity
+
+Every v2 endpoint has a persistent public/private key pair. Its Peer ID is derived from a canonical representation of the public key. Every v2 link MUST prove possession of the corresponding private key.
+
+Peer identity is distinct from:
 
 - an actor that authors operations;
 - a person or account;
+- display name, color, or avatar;
 - a transport address;
-- an ARKit participant/session identifier; and
-- a device's BLE, Wi-Fi, or libp2p identifier.
+- an ARKit participant identifier; and
+- a BLE, Wi-Fi, or hosted-relay address.
 
-A common EditSpace handshake authenticates this identity above the bearer so that a session can move between transports without becoming a new peer.
+The same Peer ID persists across simultaneous or replacement BLE, IP, direct-Wi-Fi, and hosted-relay links.
 
-### 3. Participation
+### 6.3 Discovery and invitation
 
-Connecting to a peer does not grant access to a space. Participation uses a small state machine:
+V2 supports:
 
-```text
-connected
+~~~text
+secure LAN:         DNS-SD advertisement
+offline mesh:       BLE advertisement
+remote profile:     hosted-server URL or QR invitation
+~~~
+
+Discovery records expose, within transport size limits:
+
+~~~text
+network and operation version ranges
+Peer ID and public-key fingerprint
+supported link capabilities and profiles
+short-lived nonce
+expiry
+signature
+~~~
+
+Records MUST NOT expose space names, drawing names, scene contents, or participant lists.
+
+#### 6.3.1 Local discovery
+
+DNS-SD and BLE produce peer candidates. Candidates authenticate before participation messages are accepted. Application policy MAY automatically request participation or require user approval.
+
+#### 6.3.2 Remote invitation
+
+A remote URL or QR invitation points to the hosted intermediary and carries or securely resolves:
+
+- the intermediary endpoint;
+- an unguessable, preferably one-time invitation capability;
+- the inviter's Peer ID fingerprint;
+- the target space and encrypted channel invitation;
+- the requested or permitted role;
+- an expiry;
+- `minimumNetworkVersion=2`; and
+- `encryptionRequired=true`.
+
+Both inviter and invitee connect outward to the intermediary. The invitation permits a participation request; the intermediary is not the membership authority.
+
+### 6.4 Peer-link abstraction
+
+Every v2 transport adapter exposes:
+
+~~~text
+PeerLink
+    localPeerID
+    remotePeerID
+    send(frame)
+    incomingFrames
+    maximumFrameSize
+    reliability
+    throughputClass
+    connectionState
+    close()
+~~~
+
+Representative throughput classes are `constrained`, `interactive`, and `bulk`. Correctness MUST NOT depend on a particular bearer or on selecting the fastest path.
+
+Profile bindings are:
+
+- Secure LAN: authenticated local IP streams;
+- Offline mesh: BLE GATT or L2CAP, optionally direct Wi-Fi exposed as an IP link; and
+- Remote: secure WebSocket or an equivalent broadly deployable connection to the hosted intermediary.
+
+### 6.5 Session and admission
+
+Every v2 neighbor link follows:
+
+~~~text
+link connected
+→ version and capability negotiation
+→ authenticated hello
 → participation requested or invited
-→ accepted as spatial editor, observer, assistant, or relay
-→ synchronizing
-→ participating
-```
+→ accepted or rejected
+→ channel-key admission
+→ history reconciliation
+→ active participation
+~~~
 
-Presence never grants authorization. Invitations and acceptance decisions are explicit, scoped to a space, expiring where appropriate, and bound to authenticated peer identities.
+Participation is explicit, scoped to a space and channel, bound to authenticated Peer ID, and expiring where appropriate. Presence MUST NOT grant authorization.
 
-### 4. Synchronization and recovery
+The v2 vocabulary adds authenticated hello, participation request, invitation, acceptance, rejection, resumption, encrypted welcome, key update, subscription, presence, asset, and alignment messages to the common history messages.
 
-After admission, peers exchange compact history summaries, request missing immutable operations, retrieve referenced assets, and then enter live synchronization. Reconnection repeats reconciliation rather than assuming the prior transport delivered everything.
+### 6.6 Encrypted collaboration channels
 
-The first reconciliation scheme should exploit the existing actor-local monotonic sequence numbers. Later revisions may add range fingerprints or Merkle summaries without changing scene operations.
+A physical EditSpace may contain independent channels:
 
-Traffic has three classes:
+~~~text
+Physical space
+├── shared environment channel
+├── drawing A channel
+├── drawing B channel
+├── modelling session C channel
+└── presence channel
+~~~
 
-- durable operations: reliable, retained, deduplicated, and forwardable;
-- assets: content-addressed, chunked, resumable, and normally deferred on constrained links; and
-- presence: expiring, coalescible, and optionally best effort.
+Each channel has:
 
-### 5. Spatial alignment
+- an opaque random Channel ID;
+- independent membership;
+- independent end-to-end encryption keys and epochs;
+- independent history summaries; and
+- an optional asset namespace.
 
-Scene synchronization and spatial alignment are reported independently. A peer may have the complete scene while remaining unaligned.
+Membership in a physical space does not grant membership in every channel.
 
-```text
-sceneSync: idle | synchronizing | complete | stale
-alignment: notApplicable | unaligned | provisional | confirmed | lost
-```
+#### 6.6.1 Blind relay envelope
 
-EditSpace defines alignment offers, evidence, confirmation, loss, and replacement. Native alignment payloads remain opaque adapter data.
+A relayed envelope exposes only:
 
-For compatible Apple devices, an adapter may exchange `ARWorldMap` or ARKit collaboration data. Successful relocalization/world-data merging and participant anchors provide confirmation that devices share a coordinate frame.
+~~~text
+protocol version
+opaque Channel ID
+message ID
+message class
+key epoch
+expiry
+ciphertext length
+ciphertext and authentication tag
+~~~
 
-For heterogeneous spatial devices, AprilTags provide a portable optical reference. Given a known tag pose in EditSpace and an observed tag pose in local tracking coordinates, the adapter derives the transform from its local frame into the EditSpace frame. Confirmation should include tag identity and physical size, pose stability, error/confidence measurements, and optional observation by an already aligned participant.
+A relay MAY route by Channel ID, suppress duplicate message IDs, enforce expiry and size limits, and apply backpressure. It MUST NOT require channel decryption keys. Space names, drawing names, operations, object IDs, presence, assets, and membership secrets remain encrypted. Timing and approximate volume remain observable.
 
-A remote desktop viewer uses a virtual mapping from canonical EditSpace coordinates into its renderer and does not require physical alignment.
+#### 6.6.2 Group admission
 
-## Connectivity profiles
+Group admission follows:
 
-Conformance is profile-based so a headless or desktop endpoint is not required to contain mobile radios.
+~~~text
+joiner sends public key and proof of possession
+→ authorized member approves admission
+→ channel advances to a new key epoch
+→ member creates a welcome encrypted for the joiner
+→ relays forward the opaque welcome
+→ joiner decrypts it with its private key
+~~~
 
-| Profile | Purpose | Expected support |
-| --- | --- | --- |
-| `editspace.ip.v1` | Common local/wired IP discovery and connection | Required for IP-capable native endpoints |
-| `editspace.ble.v1` | Nearby discovery, constrained sync, and bearer upgrade | Required for full mobile/offline conformance |
-| `editspace.wifi-aware.v1` | Cross-vendor infrastructure-free high-bandwidth link | Required where hardware and OS APIs expose it |
-| Apple peer-to-peer binding | Infrastructure-free Apple-to-Apple IP, commonly associated with AWDL | Required for full Apple spatial-device conformance |
-| `editspace.remote.v1` | Invitation, remote peer lookup, direct dialing, and relay fallback | Required for full remote conformance |
-| `editspace.webrtc.v1` | Browser/restricted-runtime connection | Optional |
-| `editspace.bundle.v1` | File, QR, removable-media, or delay-tolerant transfer | Optional |
+New members receive current keys, not past epoch keys. If authorized to receive history, they receive retained signed operations encrypted under the current epoch. Removing a member advances the epoch and distributes the new secret only to remaining members.
 
-### Local IP and wired networking
+EditSpace MUST adopt a reviewed group-security protocol rather than invent one. Messaging Layer Security, RFC 9420, is the leading candidate. HPKE, RFC 9180, is relevant to recipient-specific welcome material. The selected suite and parameter set remain unresolved.
 
-`editspace.ip.v1` uses mDNS/DNS-SD to advertise and browse an EditSpace service on available local IP interfaces, followed by an authenticated stream connection. The final choice between a universally implementable TLS/TCP baseline and an additional QUIC mode should be made by interoperability prototypes.
+![A new peer proves possession of its public key, receives an encrypted welcome through a blind relay, and then participates using the current group key epoch.](./Diagrams/encrypted-channel-admission.png)
 
-mDNS only covers the local multicast domain. It does not provide remote discovery and may be filtered on managed networks.
+#### 6.6.3 Durable authenticity
 
-On Apple platforms, Network framework can include Apple peer-to-peer Wi-Fi while browsing, listening, and connecting. The adapter uses the supported Network framework APIs rather than implementing undocumented AWDL behavior. The same EditSpace IP messages can therefore travel over infrastructure Wi-Fi, Ethernet, or Apple peer-to-peer Wi-Fi.
+Channel encryption is not a durable authorship record. Forwarded operations require an origin signature or signed attestation covering the space/channel, operation ID, actor, and canonical semantic digest. The attestation remains attached when an operation is forwarded, re-encrypted for another epoch, or replayed from history.
 
-### BLE
+The signing representation MUST be canonical so semantically equivalent JSON produces the same digest.
 
-`editspace.ble.v1` defines service and characteristic identifiers, advertisements, authenticated handshake framing, fragmentation, reassembly, flow control, acknowledgements, maximum required payloads, and reconnect behavior.
+### 6.7 Offline mesh
 
-BLE must support complete operation reconciliation even when no faster bearer exists. Large assets may remain pending until a suitable link becomes available.
+Authenticated neighbor links form an application-level peer graph:
 
-### BLE-assisted bearer upgrade
+~~~text
+A ←BLE→ B ←BLE→ C
+          │
+         BLE
+          │
+          D
+~~~
 
-BLE can authenticate a nearby peer and exchange connection candidates, but it cannot itself create an IP path. The operating system must expose one of the following:
+Durable operations use first-seen propagation:
 
-- both devices already share a LAN;
-- Wi-Fi Aware creates a direct cross-vendor data path without an access point;
-- Apple peer-to-peer Wi-Fi creates an Apple-only data path;
-- Wi-Fi Direct or a temporary access point creates a joinable network; or
-- no upgrade is possible and synchronization continues over BLE.
+~~~text
+receive operation
+→ reject if invalid or unauthorized
+→ discard an exact duplicate
+→ report an ID collision with different content
+→ append a new accepted operation
+→ forward it to other admitted neighbors for the channel
+~~~
 
-The logical session and peer identity remain unchanged during an upgrade:
+This does not implement IP routing, address assignment, arbitrary tunneling, route discovery, congestion control, or leader election.
 
-```text
-BLE discovery and authentication
-→ exchange supported candidates
-→ establish Wi-Fi/LAN path
-→ authenticate the same peer on the new path
+Partitions are normal. Each component continues editing, and later neighbor connections repeat pairwise reconciliation until authorized histories converge.
+
+![Durable operations propagate over admitted BLE neighbors, while a faster IP bearer can be added without changing peer identity or session state.](./Diagrams/offline-propagation-and-upgrade.png)
+
+### 6.8 BLE binding
+
+The Offline Mesh profile will standardize:
+
+- service and characteristic identifiers;
+- advertisement fields;
+- authenticated-handshake framing;
+- fragmentation and reassembly;
+- flow control and acknowledgements;
+- required message-size limits; and
+- reconnect behavior.
+
+BLE MUST carry complete durable-operation reconciliation when no faster bearer exists. Large assets MAY remain pending until a suitable link is available.
+
+These constants and encodings remain unresolved and are required before the profile becomes normative.
+
+### 6.9 High-throughput upgrade
+
+When BLE neighbors discover a faster path:
+
+~~~text
+BLE session
+→ exchange signed link candidates
+→ establish an IP link through platform facilities
+→ authenticate the same Peer ID
 → reconcile outstanding operations
-→ retain or close BLE according to policy
-```
+→ prefer IP for operations and assets
+→ retain BLE for fallback or close it
+~~~
 
-Wi-Fi Aware interoperability between actual Apple and Android hardware, Apple peer-to-peer behavior with visionOS, and Quest radio/API availability require early device prototypes before their detailed bindings become normative.
+Possible bearers include a shared LAN, Ethernet, Apple peer-to-peer Wi-Fi, Wi-Fi Aware, Wi-Fi Direct, or a temporary peer-hosted network. These are adapters, not new EditSpace semantics.
 
-## Remote invitations and discovery
+If no faster bearer exists, synchronization continues over BLE.
 
-Remote participants do not depend on mDNS. An invitation is a signed, space-scoped capability delivered through any external channel as a QR code, deep link, file, or text. It conveys authorization and connection hints; it does not create network reachability.
+### 6.10 Remote profile
 
-A remote join can proceed only while at least one authorized EditSpace peer is connected to a network path reachable by the invitee. That peer may be the inviter or another currently participating peer permitted to admit or relay the new participant. If no such peer is reachable, the invitation remains dormant until one becomes reachable. A DHT or rendezvous record may help locate a live peer, but a stale record cannot make an offline peer available.
+Direct NAT traversal, DHT lookup, and remote peer dialing are outside v2. A remote invitation always names a hosted intermediary. Participants connect outward using secure WebSocket or an equivalent transport.
 
-An invitation minimally carries or securely resolves:
+~~~text
+local/offline mesh
+        │
+internet-connected bridge peer
+        │ outbound secure connection
+        ▼
+hosted intermediary
+        ▲
+        │ outbound secure connection
+remote participant
+~~~
 
-- the space identifier;
-- inviter peer identity and key fingerprint;
-- an unguessable, preferably one-time participation capability;
-- expiry and requested/allowed role;
-- known direct addresses;
-- optional DHT lookup keys, rendezvous namespaces, and relay addresses.
+The bridge is an ordinary peer with local and remote links. Multiple bridges MAY coexist; duplicate paths are harmless.
 
-### DHT
+The hosted intermediary:
 
-A distributed hash table is a peer-operated lookup system. Participating nodes collectively map a key to a small signed value. EditSpace can derive an unguessable lookup key from an invitation and publish an encrypted, expiring connection record under that key. A DHT removes the need for one authoritative directory, but it still depends on reachable bootstrap peers and should not contain scene contents or public space listings.
+- accepts outbound authenticated transport connections;
+- associates them with unguessable routing channels;
+- retransmits opaque envelopes;
+- enforces resource limits and backpressure; and
+- expires inactive connections and routing state.
 
-### Rendezvous
+It MUST NOT decrypt channel payloads, interpret operations, materialize scenes, resolve conflicts, own peer identity, decide membership, or admit a participant while every authorized member is offline.
 
-The word *rendezvous* is overloaded. Apple's original name for Bonjour was Rendezvous, and local mDNS/DNS-SD discovery is sometimes still described informally as rendezvous. In this document, *remote rendezvous* means an internet-reachable meeting point, as in the libp2p Rendezvous protocol.
+The server's internal deployment architecture is outside this specification. Its client-visible wire contract remains unresolved.
 
-At a remote rendezvous point, the inviter temporarily registers under an unguessable namespace; the invitee queries the same service and obtains connection candidates. Remote rendezvous can be federated, replaceable, self-hosted, and unable to decrypt the resulting session, but it remains reachable coordination infrastructure. Local peers use mDNS or BLE and do not need it.
+### 6.11 Routing and scale
 
-### Direct IPv6
+Small offline groups MAY forward first-seen channel ciphertext to every admitted neighbor. Large spaces SHOULD avoid all-to-all connections and irrelevant channel traffic.
 
-An invitation should carry the inviter's current global IPv6 address and listening port when available. The invitee attempts this direct path before DHT lookup, remote rendezvous, hole punching, or relay. IPv6 can remove the IPv4 NAT obstacle, but an address does not guarantee reachability: carrier, enterprise, or host firewalls may block unsolicited inbound traffic; mobile privacy addresses rotate; the inviter may change networks or suspend; and the invitee may lack compatible IPv6 connectivity. The address is therefore an expiring connection candidate bound to the inviter's authenticated peer identity, not a durable identity or universal replacement for fallback discovery and relay.
+Scaling mechanisms are:
 
-### Relay
+- separate channels per drawing or session;
+- bounded neighbor counts;
+- opaque channel subscriptions with expiring leases;
+- batched operation envelopes;
+- pairwise anti-entropy per channel;
+- coalesced, interest-scoped presence; and
+- requested rather than flooded assets.
 
-A relay forwards end-to-end encrypted traffic when direct dialing or NAT traversal fails. It has no scene authority and cannot admit participants. Relays are essential to reliable remote mobile connectivity because two devices behind unrelated carrier or enterprise NATs are not generally reachable directly.
+A blind relay may store only:
 
-### Meaning of serverless
+~~~text
+opaque Channel ID → interested neighboring links
+~~~
 
-For EditSpace, serverless should mean no required authoritative Graphite service and no trusted server that owns membership or scene state. It cannot mean that reliable remote connectivity requires no reachable third peer. A short human code also needs a DHT, rendezvous/mailbox, or an already connected peer to resolve it.
+The detailed subscription-routing algorithm remains unresolved.
 
-Remote participation therefore requires overlapping availability: the invitee and at least one authorized space peer must be online and mutually reachable, either directly or through a relay. Supporting admission while every authorized peer is offline would require delegating admission and encrypted state custody to an always-reachable service or peer, which is outside the minimum protocol.
+### 6.12 Traffic classes
 
-The preferred remote flow is:
+#### 6.12.1 Durable operations
 
-```text
-receive invitation
-→ wait until an authorized space peer is reachable
-→ attempt embedded direct IPv6 and IPv4 candidates
-→ resolve fresher candidates through DHT or remote rendezvous if necessary
-→ attempt direct connection and NAT traversal
-→ fall back to an encrypted relay
-→ authenticate inviter and invitation capability
-→ request or confirm participation
-→ synchronize the authorized scene
-```
+Durable operations are retained, attested, deduplicated, encrypted, reconciled after partitions, and forwardable through admitted or explicitly permitted relay peers.
 
-## Heterogeneous mesh behavior
+#### 6.12.2 Presence
 
-The mesh exists above individual transports. A phone can receive an operation over BLE, retain it, and later forward it over Wi-Fi to a wired desktop or relay.
+Presence is expiring, sequenced, coalescible, interest-scoped, and never retained in durable history. It MAY be reduced or disabled on constrained links.
 
-```text
-iPhone ←BLE→ Android/Quest ←Wi-Fi→ laptop ←Ethernet→ relay or MCP peer
-```
+#### 6.12.3 Assets
 
-Forwarding is bounded by space authorization, message identity, expiry, hop limit, storage budget, and policy. Durable operations are safe to encounter repeatedly because the operation log deduplicates them. Presence should normally remain local to active sessions and should not be delay-tolerantly flooded.
+Assets are content-addressed, encrypted, chunked, resumable, integrity-checked, and requested rather than flooded. Bulk bytes SHOULD prefer high-throughput links and MAY remain pending while only BLE is available.
 
-## Reference implementations
+#### 6.12.4 Direct-neighbor control
 
-The first reference set should be deliberately heterogeneous:
+Authentication, admission, link negotiation, and link acknowledgements apply only to immediate neighbors and MUST NOT be mesh-forwarded.
 
-| Endpoint | Primary adapters | Purpose |
-| --- | --- | --- |
-| iOS/iPadOS | Swift EditSpace, Network framework, Core Bluetooth, Wi-Fi Aware, ARKit | Primary spatial editor and Apple mobile reference |
-| visionOS | Swift EditSpace, Network framework/Apple P2P, ARKit shared-coordinate facilities | Immersive Apple participant |
-| Android/Quest | Independent Kotlin/Java protocol implementation with native BLE and Wi-Fi APIs; optional Rust networking core | Cross-vendor spatial participant |
-| Blender desktop | Independent Python EditSpace implementation with an IP/remote networking adapter or sidecar | Remote observation, inspection, import/export, and validation—not general live DCC collaboration |
-| Headless/MCP endpoint | Rust or TypeScript endpoint | Invitation, bounded automation, relay/bootstrap experiments, and unattended conformance testing |
+### 6.13 Spatial profile
 
-Independent codecs and state engines should consume the same fixtures. Sharing one implementation core across every platform would conceal specification ambiguities and common bugs.
+Scene synchronization and physical alignment are independent. The Spatial profile defines alignment state and generic messages while platform-native alignment payloads remain opaque.
 
-## External systems
+~~~text
+alignment: notApplicable | unaligned | provisional | confirmed | lost
+~~~
 
-- libp2p is the leading candidate for implementation of remote DHT, rendezvous, NAT traversal, and circuit relay behavior. It should not become a requirement of EditSpace semantics.
-- p2panda is useful prior art for transport-independent anti-entropy and delay-tolerant store-and-forward.
-- Wesh is useful prior art for offline-first encrypted mobile networking, but its Go/gRPC stack and broader group-messaging model should not become an EditSpace dependency.
-- If MARS means the Mesh Agent Routing Standard, its Kademlia/QUIC capability discovery may be useful for MCP or agent lookup, but it does not replace local radio discovery, spatial alignment, participation, or scene synchronization.
-- Unity MARS is an AR environment-authoring/runtime system rather than a peer networking protocol. Its environment proxies, markers, and simulation are relevant adapter prior art, not an EditSpace transport foundation.
+Apple adapters may exchange supported ARKit alignment data. Heterogeneous devices may use AprilTags or another portable optical reference. A remote desktop viewer uses a virtual mapping from canonical EditSpace coordinates and does not require physical alignment.
 
-## Implementation plan
+### 6.14 Conformance
 
-### Phase 1: Specify the common session
+A v2 endpoint MUST first satisfy v1 framing, negotiation, synchronization, and recovery behavior where reused by its profiles.
 
-1. Define peer identity and the authenticated hello.
-2. Define participation request, invitation, acceptance, rejection, and resumption.
-3. Define history summary, missing-range request, operation batch, sync completion, and asset manifest messages.
-4. Define alignment state and opaque alignment offer/evidence/confirmation messages.
-5. Add transport-independent state-machine and failure conformance vectors.
+The v2 conformance suite will cover:
 
-### Phase 2: Local IP reference
+- authenticated identity and handshake;
+- participation state transitions;
+- encrypted welcome and key epochs using fixed test keys;
+- downgrade rejection;
+- channel isolation and blind relaying;
+- duplicate, reordered, and delayed delivery;
+- partitions and eventual convergence;
+- BLE fragmentation and reassembly;
+- multi-peer forwarding;
+- BLE-to-IP upgrade;
+- hosted-relay bridging;
+- presence expiry;
+- asset resumption; and
+- alignment transitions.
 
-1. Implement `editspace.ip.v1` in Swift and one independent desktop/headless implementation.
-2. Validate mDNS discovery over Wi-Fi and Ethernet.
-3. Validate direct connection, authentication, complete history transfer, reconnect, and duplicate delivery.
-4. Validate Apple peer-to-peer Wi-Fi through supported Network framework APIs.
+An endpoint claims only the v2 profiles whose required vectors and device qualifications it passes.
 
-### Phase 3: BLE and bearer upgrade
+## 7. Potential Network Protocol v3
 
-1. Implement full constrained BLE synchronization between two mobile peers.
-2. Resume interrupted history and prove convergence under small MTUs and duplicate/reordered delivery.
-3. Prototype Apple-to-Android Wi-Fi Aware using BLE-established identity.
-4. Fall back to BLE without restarting the EditSpace session.
+**Section 7 contents**
 
-### Phase 4: Spatial alignment
+- [7.1 Status and boundary](#71-status-and-boundary)
+- [7.2 Networking and session candidates](#72-networking-and-session-candidates)
+- [7.3 Cross-layer candidates](#73-cross-layer-candidates)
+- [7.4 Core-message and application candidates](#74-core-message-and-application-candidates)
+- [7.5 Possible initial focus](#75-possible-initial-focus)
 
-1. Carry ARKit world maps/collaboration data as adapter-specific alignment payloads.
-2. Confirm Apple alignment using relocalization/world merging and participant anchors.
-3. Implement AprilTag alignment evidence across Apple and Android/Quest.
-4. Exercise provisional, confirmed, lost, and realigned transitions independently of scene sync.
+### 7.1 Status and boundary
 
-### Phase 5: Remote invitations
+V3 is a speculative research space, not a protocol commitment. The candidates in this section have no assigned wire encodings, conformance requirements, compatibility promises, or implementation schedule. Listing an idea here does not mean it belongs in the networking protocol or that a third network version will necessarily be required.
 
-1. Define signed QR/deep-link invitation encoding.
-2. Prototype DHT and rendezvous resolution behind a common adapter contract.
-3. Add direct dialing, NAT traversal, and end-to-end encrypted relay fallback.
-4. Demonstrate accepted remote observation of the complete authorized scene.
+A feature belongs in a future networking version only when it changes discovery, connection establishment, admission, routing, replication, synchronization, transport, or network-visible security invariants. A feature that changes the representation or meaning of durable edits belongs in a future core operation schema. User workflow and rendering behavior belong in application profiles. Cross-layer features require separately versioned contracts at each affected boundary.
 
-### Phase 6: Heterogeneous mesh
+New bearers, radios, hosted intermediaries, or optional deployment arrangements SHOULD remain v2 profiles when they do not change the underlying session and synchronization model. V3 should be introduced only for a coherent set of new network invariants, not as a collection of unrelated optional features.
 
-1. Forward durable operations across BLE and IP adapters on an intermediate peer.
-2. Enforce loop suppression, expiry, hop, authorization, and storage limits.
-3. Test partitions, delayed delivery, bearer migration, and eventual convergence across at least three independent platform implementations.
+### 7.2 Networking and session candidates
 
-## Early decisions and risks
+The following are primarily networking, replication, or session-layer ideas:
 
-The following require prototypes before the specification freezes:
+**Selective replication and interest routing**
 
-- Apple-to-Android Wi-Fi Aware service, pairing, and data-path interoperability;
-- supported Wi-Fi and BLE behavior on representative Quest hardware;
-- the required common IP stream baseline: TLS/TCP, QUIC, or both;
-- mobile background behavior and energy limits;
-- practical BLE throughput, peer degree, and payload limits;
-- privacy-preserving invitation lookup and resistance to code guessing;
-- relay abuse controls without giving the relay scene authority;
-- operation-history compaction without preventing late or intermittently connected peers from recovering.
+Peers could subscribe to spatial regions, collections, layers, entity classes, operation classes, time ranges, or levels of detail rather than retaining an entire space. Summaries and requests would describe subscription scopes, and routing would deliver only authorized relevant history. Correctness rules would have to distinguish a complete subscribed view from an incomplete replica.
 
-## Success criteria
+**Content-addressed asset distribution**
 
-The design is successful when:
+Assets identified by cryptographic digests could be obtained from any authorized peer, cache, relay, or archive. A profile could define resumable chunks, verification, deduplication, peer-assisted distribution, quality variants, and optional erasure-coded storage without placing large asset bytes in the durable operation log.
 
-1. nearby Apple peers edit one physical environment without a base station;
-2. an Apple and Android/Quest peer align optically and converge while offline;
-3. BLE continues useful editing and later upgrades to a faster bearer without changing peer identity;
-4. a remote invited observer joins through direct or relayed connectivity without public space discovery;
-5. an intermediate device forwards durable operations between incompatible local bearers;
-6. independently implemented Swift, Kotlin/Python, and Rust/TypeScript endpoints pass the same behavioral conformance suite; and
-7. none of these requirements turns EditSpace into a general-purpose desktop collaborative modeling protocol.
+**Capability-based authorization**
 
-## References
+Cryptographic capabilities could grant narrow, delegable, and offline-verifiable authority: edit particular objects or regions, add annotations, publish bounded assets, invite viewers, or act until an expiry. Network admission and operation acceptance would consume the same capability semantics while remaining separately testable.
 
+**Privacy-preserving discovery**
+
+Rotating discovery identities, encrypted advertisements, invitation-bound discovery, or proofs of shared membership could allow authorized nearby peers to find one another without publicly exposing stable identities, space IDs, or participant lists.
+
+**Store-carry-forward synchronization**
+
+An authorized device could physically carry opaque encrypted history between groups that remain disconnected for hours or days. The protocol would need expiry, replay, duplicate suppression, custody limits, and reconciliation rules for delayed bundles without treating the carrier as a channel member.
+
+**Self-preserving spaces**
+
+A space could express replication and archival requirements, detect loss of complete replicas or assets, and arrange encrypted repair copies among authorized peers. Network state would report durability health without creating a permanently authoritative server.
+
+### 7.3 Cross-layer candidates
+
+These ideas affect networking but also require changes to core identity, message, or application models:
+
+**Federated spaces**
+
+Independently administered spaces could be mounted, referenced, or connected through portals without permanently merging all histories. Networking would route and subscribe across federation boundaries, while the core model would define stable references, namespace behavior, and the meaning of cross-space operations. Each space could retain independent membership, encryption, retention, and ownership policy.
+
+**Distributed spatial consensus**
+
+Peers could reconcile competing anchors, confidence estimates, drift corrections, and indoor/outdoor coordinate transitions into a shared spatial frame. Networking would distribute measurements and consensus state; a spatial schema would define their meaning and privacy rules.
+
+**Portable protocol extensions**
+
+Capability negotiation could advertise schemas or sandboxed deterministic modules for validation, migration, materialization, constraints, or procedural geometry. Distribution and compatibility are networking concerns; execution semantics and deterministic state changes belong to the core protocol. WebAssembly is one possible container but is not selected.
+
+**Autonomous collaborators**
+
+Agents, scanners, robots, procedural systems, and render farms could participate as constrained peers. Networking would provide identity, admission, rate limits, and capabilities, while durable messages would carry provenance, tool or model identity, confidence, reproducibility information, resource budgets, and human-approval requirements.
+
+### 7.4 Core-message and application candidates
+
+These ideas may be valuable to EditSpace but are not, by themselves, reasons for a networking v3:
+
+**Branches, proposals, and review**
+
+Private or shared branches, proposed operation sets, deterministic branch merging, selective undo, checkpoints, review, and time travel primarily change durable history semantics and collaboration workflow. Networking may synchronize branch data after a future core schema defines it.
+
+**Distributed simulation**
+
+Physics, animation, robotics, or game simulation could use deterministic lockstep, authoritative leases, prediction, correction, checkpoints, and transfer of simulation authority. Simulation messages should use an optional application or session profile, and simulation state should become durable EditSpace history only through an explicit commit operation.
+
+### 7.5 Possible initial focus
+
+If a future v3 is justified, the most coherent initial combination is:
+
+1. selective replication and interest routing;
+2. federated spaces; and
+3. capability-based authorization.
+
+Together they would permit large, independently governed spaces in which no participant or server must store everything. Federation would require coordinated evolution of the networking and core specifications; the other candidates could then be evaluated as profiles rather than assumed v3 requirements.
+
+## 8. Conformance and development
+
+### 8.1 JavaScript conformance system
+
+The JavaScript conformance suite is the executable specification for deterministic, transport-independent decisions. The networking manifest and vectors are versioned independently from the core materialization vectors. Native adapters run the same cases and compare their decoded results structurally.
+
+V1 vectors cover:
+
+- DNS-SD TXT encoding;
+- hello version negotiation;
+- big-endian frame parsing and partial TCP reads;
+- frame-size rejection;
+- duplicate-connection resolution;
+- explicit space selection;
+- permitted message order;
+- history-range comparison;
+- requested-batch completion;
+- duplicate, operation-ID collision, and actor-sequence collision behavior; and
+- neighbor-specific export without implicit forwarding.
+
+Passing virtual conformance does not prove DNS-SD interoperability, radio behavior, background execution, throughput, energy use, or hosted deployment reliability. Those require integration and device qualification.
+
+### 8.2 Implementation sequence
+
+This section is non-normative.
+
+#### 8.2.1 Minimum LAN implementation
+
+1. Validate the normative schema and deterministic networking vectors.
+2. Implement the Python reference library and Blender queue bridge.
+3. Implement Apple and Android bindings.
+4. Qualify Blender/Python, Apple, Android, and representative Meta hardware against independent peers.
+5. Pursue formal registration of the already-fixed `_editspace._tcp` service name.
+
+#### 8.2.2 Secure LAN
+
+1. Select the authenticated handshake and group-security suite.
+2. Define channel admission, canonical attestations, and downgrade vectors.
+3. Prove secure LAN interoperability before adding constrained transports.
+
+#### 8.2.3 Offline Mesh
+
+1. Freeze BLE identifiers, framing, fragmentation, and flow control.
+2. Prove two-peer reconciliation over BLE.
+3. Prove three-peer forwarding, partition, and recovery.
+4. Add optional IP upgrade and asset transfer.
+
+#### 8.2.4 Remote and Spatial
+
+1. Freeze the hosted-intermediary client contract.
+2. Prove opaque local/remote bridging and duplicate paths.
+3. Add native and heterogeneous alignment bindings.
+
+### 8.3 Open issues
+
+V1 has no unresolved wire-design issue. Cross-platform DNS-SD qualification, operating-system permission changes, Blender dependency packaging, and formal service-name registration remain implementation and deployment work; they do not change v1 messages or state transitions.
+
+V2 must resolve before freezing:
+
+- authenticated-handshake and group-security suites;
+- canonical operation signing;
+- BLE identifiers, MTUs, flow control, throughput, and peer limits;
+- representative Quest BLE behavior;
+- subscription routing beyond bounded flooding;
+- history compaction for intermittent peers;
+- encrypted asset resumption;
+- hosted-intermediary abuse controls; and
+- acceptable traffic-analysis leakage.
+
+### 8.4 Global non-goals
+
+EditSpace networking is not:
+
+- an arbitrary IP mesh, VPN, or replacement network stack;
+- a public directory of spaces;
+- a general messaging platform;
+- a DHT or NAT-traversal protocol;
+- an authoritative cloud scene service;
+- guaranteed remote connectivity without a hosted intermediary;
+- a mechanism for making blind relays channel members; or
+- a replacement for USD/USDZ in conventional desktop 3D interchange.
+
+### 8.5 References
+
+- IETF, *Key words for use in RFCs to Indicate Requirement Levels*, RFC 2119: <https://www.rfc-editor.org/rfc/rfc2119.html>
+- IETF, *Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words*, RFC 8174: <https://www.rfc-editor.org/rfc/rfc8174.html>
+- IETF, *Multicast DNS*, RFC 6762: <https://www.rfc-editor.org/rfc/rfc6762.html>
+- IETF, *DNS-Based Service Discovery*, RFC 6763: <https://www.rfc-editor.org/rfc/rfc6763.html>
+- IETF, *The Messaging Layer Security (MLS) Protocol*, RFC 9420: <https://www.rfc-editor.org/rfc/rfc9420.html>
+- IRTF, *Hybrid Public Key Encryption*, RFC 9180: <https://www.rfc-editor.org/rfc/rfc9180.html>
+- Apple, *TN3151: Choosing the right networking API*: <https://developer.apple.com/documentation/technotes/tn3151-choosing-the-right-networking-api>
 - Apple, *TN3111: iOS Wi-Fi API overview*: <https://developer.apple.com/documentation/technotes/tn3111-ios-wifi-api-overview>
 - Apple, *Moving from Multipeer Connectivity to Network framework*: <https://developer.apple.com/documentation/technotes/tn3213-moving-from-multipeer-connectivity-to-network-framework>
 - Apple, *Wi-Fi Aware*: <https://developer.apple.com/documentation/wifiaware>
+- Android, *Use network service discovery*: <https://developer.android.com/develop/connectivity/wifi/use-nsd>
 - Android, *Wi-Fi Aware overview*: <https://developer.android.com/develop/connectivity/wifi/wifi-aware>
 - Android, *Wi-Fi Direct*: <https://developer.android.com/develop/connectivity/wifi/wifi-direct>
-- libp2p, *Rendezvous*: <https://libp2p.io/docs/rendezvous/>
-- libp2p, *Circuit Relay*: <https://libp2p.io/docs/circuit-relay/>
-- Magic Wormhole documentation: <https://magic-wormhole.readthedocs.io/>
-- p2panda: <https://p2panda.org/>

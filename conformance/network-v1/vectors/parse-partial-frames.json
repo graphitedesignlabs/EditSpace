@@ -1,0 +1,16 @@
+{
+  "id": "network.parse-partial-frames",
+  "networkVersion": 1,
+  "operation": "parsePartialFrames",
+  "input": {
+    "messages": [
+      { "kind": "editspace.network.space-selection", "v": 1, "spaces": [] },
+      { "kind": "editspace.network.sync-complete", "v": 1, "summaryID": "summary-a-2", "doc": "space-a" }
+    ],
+    "chunkSizes": [1, 2, 7, 3, 64]
+  },
+  "expected": {
+    "kinds": ["editspace.network.space-selection", "editspace.network.sync-complete"],
+    "remainingBytes": 0
+  }
+}

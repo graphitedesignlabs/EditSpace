@@ -14,3 +14,5 @@ Implementation procedure:
 6. Emit one actual result per required entry in a conformance report. Wire results contain `accepted` and any `problems`; materialization results contain normalized `actual` state.
 
 The supplied runner validates the report and independently compares actual results with the manifest and vectors. Implementations own their native vector adapters; this repository intentionally contains no language implementation.
+
+Networking v1 has a separate manifest at `conformance/network-v1/manifest.json`. Its deterministic vectors cover TXT encoding, version selection, duplicate-connection choice, explicit space selection, frame parsing and limits, message ordering, missing-range calculation, request batching, collision handling, and the prohibition on implicit forwarding. Run them with `npm run network-conformance`; the default `npm test` and `npm run validate` commands run both the core and networking suites.
