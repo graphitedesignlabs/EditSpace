@@ -29,9 +29,26 @@ pandoc "$source_file" \
     --metadata title="EditSpace Networking Protocol" \
     --output="$html_file"
 
+rendered_with_weasyprint=false
 if command -v weasyprint >/dev/null 2>&1; then
-    weasyprint "$html_file" "$output_file"
-else
+    weasyprint_binary="$(command -v weasyprint)"
+    if [[ "$weasyprint_binary" == */.pyenv/shims/* ]] && command -v pyenv >/dev/null 2>&1; then
+        weasyprint_binary="$(pyenv which weasyprint)"
+    fi
+    if [[ "$(uname -s)" == "Darwin" && -d "/opt/homebrew/lib" ]]; then
+        export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib${DYLD_FALLBACK_LIBRARY_PATH:+:$DYLD_FALLBACK_LIBRARY_PATH}"
+        export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$temporary_dir/cache}"
+        mkdir -p "$XDG_CACHE_HOME"
+    fi
+    if "$weasyprint_binary" "$html_file" "$output_file"; then
+        rendered_with_weasyprint=true
+    else
+        echo "WeasyPrint failed; trying Chrome/Chromium" >&2
+        rm -f -- "$output_file"
+    fi
+fi
+
+if [[ "$rendered_with_weasyprint" != true ]]; then
     chrome_binary="${CHROME_BIN:-}"
     if [[ -z "$chrome_binary" ]]; then
         candidates=(

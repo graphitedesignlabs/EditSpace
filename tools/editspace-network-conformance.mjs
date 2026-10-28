@@ -160,6 +160,91 @@ function messageOrder(input) {
   return { results };
 }
 
+function applicationMessageAuthorization(input) {
+  return {
+    results: input.cases.map((entry) => {
+      if (entry.state !== "live" ||
+          !entry.localCapabilities.includes("application-messages") ||
+          !entry.remoteCapabilities.includes("application-messages")) {
+        return { error: "unexpectedMessage" };
+      }
+      return { accepted: true };
+    })
+  };
+}
+
+function decodeStandardBase64(payload) {
+  if (typeof payload !== "string" ||
+      !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(payload)) {
+    throw new Error("invalidMessage");
+  }
+  const decoded = Buffer.from(payload, "base64");
+  if (decoded.length > 8388608) throw new Error("invalidMessage");
+  return decoded;
+}
+
+function isObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isIdentifier(value) {
+  return typeof value === "string" && value.length >= 1 && value.length <= 1024;
+}
+
+function isSafeInteger(value, minimum = 0) {
+  return Number.isSafeInteger(value) && value >= minimum;
+}
+
+function conformsToPresenceEnvelope(value) {
+  if (!isObject(value) || value.kind !== "editspace.presence" || value.v !== 1 ||
+      !isIdentifier(value.doc) || !isObject(value.presence)) return false;
+  const presence = value.presence;
+  if (!isObject(presence.identity) || !isIdentifier(presence.identity.peerID) ||
+      !isIdentifier(presence.identity.actorID) || !isObject(presence.identity.attributes) ||
+      !isIdentifier(presence.sessionID) ||
+      !["active", "idle", "away", "offline"].includes(presence.state) ||
+      !isSafeInteger(presence.sequence) || !Array.isArray(presence.selectedEntities) ||
+      !isObject(presence.focus) || typeof presence.updatedAt !== "string" ||
+      Number.isNaN(Date.parse(presence.updatedAt)) ||
+      !isSafeInteger(presence.timeToLiveSeconds, 1)) return false;
+  if (!["displayName", "color", "avatarURL"].every((key) =>
+    presence.identity[key] === undefined || presence.identity[key] === null ||
+    typeof presence.identity[key] === "string")) return false;
+  return presence.selectedEntities.every((entity) =>
+    isObject(entity) && isIdentifier(entity.kind) && isIdentifier(entity.id));
+}
+
+function applicationMessageDispatch(input) {
+  return {
+    results: input.cases.map((entry) => {
+      let decoded;
+      try {
+        decoded = decodeStandardBase64(entry.payload);
+      } catch {
+        return { error: "invalidMessage" };
+      }
+      if (entry.channel === "editspace.presence") {
+        let presence;
+        try {
+          const text = new TextDecoder("utf-8", { fatal: true }).decode(decoded);
+          presence = JSON.parse(text);
+        } catch {
+          return { error: "invalidMessage" };
+        }
+        return conformsToPresenceEnvelope(presence) ? { dispatch: "presence" } : { error: "invalidMessage" };
+      }
+      return entry.knownChannels.includes(entry.channel) ? { dispatch: "application" } : { dispatch: "ignored" };
+    })
+  };
+}
+
+function validateApplicationPayloadLengths(input) {
+  return {
+    results: input.decodedByteLengths.map((length) =>
+      Number.isSafeInteger(length) && length >= 0 && length <= 8388608 ? "accepted" : "invalidMessage")
+  };
+}
+
 function completeRequestBatches(input) {
   const requested = new Map(input.actors.map((entry) => [entry.actor, entry.ranges]));
   const operations = [];
@@ -213,6 +298,9 @@ const operations = {
   parsePartialFrames,
   validateFrameLengths,
   messageOrder,
+  applicationMessageAuthorization,
+  applicationMessageDispatch,
+  validateApplicationPayloadLengths,
   completeRequestBatches,
   detectCollisions
 };

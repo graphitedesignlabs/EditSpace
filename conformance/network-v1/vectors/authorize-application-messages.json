@@ -1,0 +1,37 @@
+{
+  "id": "network.authorize-application-messages",
+  "networkVersion": 1,
+  "operation": "applicationMessageAuthorization",
+  "input": {
+    "cases": [
+      {
+        "state": "live",
+        "localCapabilities": ["application-messages", "dns-sd", "history-ranges", "tcp"],
+        "remoteCapabilities": ["application-messages", "dns-sd", "history-ranges", "tcp"]
+      },
+      {
+        "state": "synchronizing",
+        "localCapabilities": ["application-messages", "dns-sd", "history-ranges", "tcp"],
+        "remoteCapabilities": ["application-messages", "dns-sd", "history-ranges", "tcp"]
+      },
+      {
+        "state": "live",
+        "localCapabilities": ["dns-sd", "history-ranges", "tcp"],
+        "remoteCapabilities": ["application-messages", "dns-sd", "history-ranges", "tcp"]
+      },
+      {
+        "state": "live",
+        "localCapabilities": ["application-messages", "dns-sd", "history-ranges", "tcp"],
+        "remoteCapabilities": ["dns-sd", "history-ranges", "tcp"]
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      { "accepted": true },
+      { "error": "unexpectedMessage" },
+      { "error": "unexpectedMessage" },
+      { "error": "unexpectedMessage" }
+    ]
+  }
+}

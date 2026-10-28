@@ -160,8 +160,13 @@ V1 deliberately does not define:
 - hosted intermediaries;
 - NAT traversal;
 - asset byte transfer;
-- presence transport; or
-- spatial alignment.
+- application-specific presence behavior beyond the core EditSpace presence envelope; or
+- standardized spatial-alignment semantics.
+
+V1 endpoints advertising the optional `application-messages` capability can
+carry ephemeral application-defined payloads. These payloads are deliberately
+separate from durable EditSpace history; the base protocol defines their
+delivery and framing, but not application-specific meaning.
 
 V1 applications MUST describe the mode as unencrypted. They MUST NOT claim that a v1 Peer ID proves a device, person, account, or operation author.
 
@@ -265,7 +270,7 @@ TCP connected
 → closed
 ~~~
 
-In `hello`, only `networkHello` and `networkError` are permitted. In `selection`, only `spaceSelection` and `networkError` are permitted. Synchronization messages are permitted after both selections have arrived. `networkError` is permitted in every state. A message received before its permitted state is `unexpectedMessage`.
+In `hello`, only `networkHello` and `networkError` are permitted. In `selection`, only `spaceSelection` and `networkError` are permitted. Synchronization messages are permitted after both selections have arrived. An `applicationMessage` is permitted only in `live` and only when both hellos contain the `application-messages` capability. `networkError` is permitted in every state. A message received before its permitted state, or without its required negotiated capability, is `unexpectedMessage`.
 
 An endpoint MUST allow at least 30 seconds for the remote hello and at least 30 seconds for the remote selection. During synchronization it MUST allow at least 120 seconds without receiving bytes or completing a requested batch before treating the link as stalled. Implementations MAY wait longer. A timeout closes the connection; reconnection begins with a new hello and full reconciliation. TCP keepalive MAY be enabled but does not replace these protocol rules.
 
@@ -438,7 +443,51 @@ For one actor, two semantically different operations using the same `seq` are an
 
 `summaryID` identifies the remote summary against which completion was established. A peer sends `syncComplete` only after all its requests against that summary have received final batches, all valid returned operations are durable, and comparison finds no advertised operation missing locally. Receipt describes pairwise state at that instant; it is not a permanent global-completion claim.
 
-#### 5.6.8 `networkError`
+#### 5.6.8 `applicationMessage`
+
+~~~json
+{
+  "kind": "editspace.network.application",
+  "v": 1,
+  "messageID": "3dd16cf1-1fa4-4b54-917d-4669f3193627",
+  "channel": "org.example.selection",
+  "payload": "eyJvYmplY3RJRCI6ImN1YmUtMSJ9"
+}
+~~~
+
+`applicationMessage` is optional and may be sent only after the connection is
+`live`, and only when both endpoints advertised `application-messages` in
+`networkHello`. `messageID` identifies one transmission. `channel` is a
+nonempty application-defined identifier of at most 128 Unicode scalar values.
+`payload` is standard padded base64 representing opaque bytes and MUST decode
+to at most 8,388,608 bytes.
+
+Application messages are ephemeral: implementations MUST NOT add them to the
+operation repository, include them in history summaries, or replay them after
+reconnection. Applications that need durable shared state MUST represent it as
+EditSpace operations instead. Unknown channels MUST be ignored. Delivery is
+reliable and ordered within the TCP connection, but is not guaranteed across a
+disconnect.
+
+The receiver MUST validate the application-message structure and base64
+payload before dispatching by channel. Invalid base64 or a decoded payload
+larger than 8,388,608 bytes is `invalidMessage`. Ignoring an unknown channel
+means taking no application action after successful protocol validation; it
+does not permit malformed messages.
+
+The base protocol does not assign meaning to channels. Portable applications
+SHOULD publish a separate channel specification including payload schemas and
+versioning rules.
+
+The channel `editspace.presence` is reserved by EditSpace. Its payload MUST be
+a UTF-8 JSON document conforming to `presence-envelope-v1.schema.json`. This
+provides a portable peer display name, actor identity, selection and focus
+handshake without relying on a platform-specific discovery framework.
+Malformed UTF-8, invalid JSON, or a payload that does not conform to the
+presence schema is `invalidMessage`. Valid presence remains ephemeral and MUST
+NOT be inserted into durable operation history.
+
+#### 5.6.9 `networkError`
 
 ~~~json
 {
@@ -560,12 +609,15 @@ A conforming v1 endpoint MUST:
 10. reconcile missing history after every connection;
 11. deduplicate immutable operations and report both ID and actor-sequence collisions;
 12. preserve provenance and prevent implicit forwarding between neighbors;
-13. exchange live eligible operations with all participating direct peers; and
-14. pass every required v1 networking fixture and deterministic scenario vector.
+13. exchange live eligible operations with all participating direct peers;
+14. when advertising `application-messages`, enforce mutual capability
+    negotiation, live-state delivery, payload limits, unknown-channel
+    handling, and the reserved presence-channel schema; and
+15. pass every required v1 networking fixture and deterministic scenario vector.
 
 Interoperability MUST be demonstrated with an independently implemented peer. Two instances of one library are insufficient evidence of cross-platform conformance.
 
-The normative structural schema is `schemas/network-message-v1.schema.json`. Stateful behavior that JSON Schema cannot express—including message order, range containment, snapshot retention, collision handling, reconnection, and non-forwarding—is normative in this document and MUST be exercised by the networking vectors listed in `conformance/network-v1/manifest.json`.
+The normative structural schema is `schemas/network-message-v1.schema.json`. Stateful behavior that JSON Schema cannot express—including message order, capability gating, application-message dispatch, presence payload handling, range containment, snapshot retention, collision handling, reconnection, and non-forwarding—is normative in this document and MUST be exercised by the networking vectors listed in `conformance/network-v1/manifest.json`.
 
 ## 6. Network Protocol v2
 

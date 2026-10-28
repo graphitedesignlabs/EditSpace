@@ -285,6 +285,8 @@ A presence envelope contains `kind = editspace.presence`, `v = 1`, `doc`, and `p
 
 A receiver retains only the greatest `sequence` observed for each `sessionID`. A non-expired `offline` record removes that session. Other records expire when receiver time is strictly later than `updatedAt + timeToLiveSeconds`. Authentication and authorization are outside the presence envelope and belong to the networking/session layer; presence identity is untrusted and grants no authority.
 
+The presence envelope is transport-neutral. EditSpace network v1 endpoints that advertise the optional `application-messages` capability carry it as the UTF-8 JSON payload of the reserved `editspace.presence` channel. The networking specification defines capability gating, connection-state requirements, and malformed-payload behavior.
+
 ## 8. Synchronization and storage
 
 An author MUST durably append locally before advertising an operation. A peer import is appended idempotently and SHOULD be queued for durable storage. A store import is appended idempotently and MAY be relayed. Relays MUST deduplicate by immutable operation ID to prevent loops.

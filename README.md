@@ -34,7 +34,7 @@ The networking specification separates two versions:
 1. network v1 is a small unencrypted trusted-LAN protocol using DNS-SD, direct TCP, length-prefixed JSON, and history reconciliation; and
 2. network v2 adds cryptographic identity, encrypted channels, BLE/off-grid forwarding, invitations, and hosted remote relay connections.
 
-Network v1 is the first interoperability target for Blender/Python, Apple, Android, Meta, desktop, and headless endpoints. Network and operation-schema versions are negotiated independently.
+Network v1 is the first interoperability target for Blender/Python, Apple, Android, Meta, desktop, and headless endpoints. Network and operation-schema versions are negotiated independently. Endpoints may also negotiate the optional `application-messages` capability for live, ephemeral, ordered payloads outside durable operation history. The reserved `editspace.presence` channel carries the protocol's cross-platform presence envelope without a platform-specific messaging layer.
 
 V2 remote URL and QR invitations point to the hosted intermediary. A physical space may contain independently authorized and encrypted channels; intermediate devices and the intermediary route opaque envelopes without receiving channel keys. See the [draft networking specification](Docs/EditSpace-Networking-Design.md) for requirements and provisional v2 profiles.
 

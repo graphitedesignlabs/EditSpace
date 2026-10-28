@@ -9,6 +9,7 @@
     { "$ref": "#/$defs/requestOperations" },
     { "$ref": "#/$defs/operationBatch" },
     { "$ref": "#/$defs/syncComplete" },
+    { "$ref": "#/$defs/applicationMessage" },
     { "$ref": "#/$defs/networkError" }
   ],
   "$defs": {
@@ -150,6 +151,25 @@
         "v": { "const": 1 },
         "summaryID": { "$ref": "#/$defs/identifier" },
         "doc": { "$ref": "#/$defs/identifier" }
+      },
+      "additionalProperties": true
+    },
+    "applicationMessage": {
+      "type": "object",
+      "required": ["kind", "v", "messageID", "channel", "payload"],
+      "properties": {
+        "kind": { "const": "editspace.network.application" },
+        "v": { "const": 1 },
+        "messageID": { "$ref": "#/$defs/identifier" },
+        "channel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "payload": {
+          "type": "string",
+          "contentEncoding": "base64"
+        }
       },
       "additionalProperties": true
     },

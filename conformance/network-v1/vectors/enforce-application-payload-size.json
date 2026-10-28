@@ -1,0 +1,11 @@
+{
+  "id": "network.enforce-application-payload-size",
+  "networkVersion": 1,
+  "operation": "validateApplicationPayloadLengths",
+  "input": {
+    "decodedByteLengths": [0, 1, 8388608, 8388609]
+  },
+  "expected": {
+    "results": ["accepted", "accepted", "accepted", "invalidMessage"]
+  }
+}

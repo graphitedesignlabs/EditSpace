@@ -11,6 +11,9 @@
     { "id": "network.parse-partial-frames", "path": "conformance/network-v1/vectors/parse-partial-frames.json", "required": true },
     { "id": "network.enforce-frame-size", "path": "conformance/network-v1/vectors/enforce-frame-size.json", "required": true },
     { "id": "network.enforce-message-order", "path": "conformance/network-v1/vectors/enforce-message-order.json", "required": true },
+    { "id": "network.authorize-application-messages", "path": "conformance/network-v1/vectors/authorize-application-messages.json", "required": true },
+    { "id": "network.dispatch-application-messages", "path": "conformance/network-v1/vectors/dispatch-application-messages.json", "required": true },
+    { "id": "network.enforce-application-payload-size", "path": "conformance/network-v1/vectors/enforce-application-payload-size.json", "required": true },
     { "id": "network.complete-request-batches", "path": "conformance/network-v1/vectors/complete-request-batches.json", "required": true },
     { "id": "network.detect-operation-collisions", "path": "conformance/network-v1/vectors/detect-operation-collisions.json", "required": true }
   ]

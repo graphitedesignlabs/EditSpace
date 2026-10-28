@@ -1,0 +1,55 @@
+{
+  "id": "network.dispatch-application-messages",
+  "networkVersion": 1,
+  "operation": "applicationMessageDispatch",
+  "input": {
+    "cases": [
+      {
+        "channel": "org.example.selection",
+        "knownChannels": ["org.example.selection"],
+        "payload": "eyJvYmplY3RJRCI6ImN1YmUtMSJ9"
+      },
+      {
+        "channel": "org.example.unknown",
+        "knownChannels": ["org.example.selection"],
+        "payload": "e30="
+      },
+      {
+        "channel": "org.example.selection",
+        "knownChannels": ["org.example.selection"],
+        "payload": "not-base64"
+      },
+      {
+        "channel": "editspace.presence",
+        "knownChannels": [],
+        "payload": "eyJraW5kIjoiZWRpdHNwYWNlLnByZXNlbmNlIiwidiI6MSwiZG9jIjoic3BhY2UtYSIsInByZXNlbmNlIjp7ImlkZW50aXR5Ijp7InBlZXJJRCI6InBlZXItYSIsImFjdG9ySUQiOiJhY3Rvci1hIiwiZGlzcGxheU5hbWUiOiJBZGEiLCJjb2xvciI6bnVsbCwiYXZhdGFyVVJMIjpudWxsLCJhdHRyaWJ1dGVzIjp7fX0sInNlc3Npb25JRCI6InNlc3Npb24tYSIsInN0YXRlIjoiYWN0aXZlIiwic2VxdWVuY2UiOjEsInNlbGVjdGVkRW50aXRpZXMiOlt7ImtpbmQiOiJvYmplY3QiLCJpZCI6ImN1YmUtMSJ9XSwiZm9jdXMiOnt9LCJ1cGRhdGVkQXQiOiIyMDI2LTEwLTI0VDIwOjAwOjAwWiIsInRpbWVUb0xpdmVTZWNvbmRzIjozMH19"
+      },
+      {
+        "channel": "editspace.presence",
+        "knownChannels": [],
+        "payload": "bm90LWpzb24="
+      },
+      {
+        "channel": "editspace.presence",
+        "knownChannels": [],
+        "payload": "/w=="
+      },
+      {
+        "channel": "editspace.presence",
+        "knownChannels": [],
+        "payload": "eyJraW5kIjoiZWRpdHNwYWNlLnByZXNlbmNlIiwidiI6MSwiZG9jIjoic3BhY2UtYSIsInByZXNlbmNlIjp7fX0="
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      { "dispatch": "application" },
+      { "dispatch": "ignored" },
+      { "error": "invalidMessage" },
+      { "dispatch": "presence" },
+      { "error": "invalidMessage" },
+      { "error": "invalidMessage" },
+      { "error": "invalidMessage" }
+    ]
+  }
+}
