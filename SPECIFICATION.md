@@ -261,6 +261,16 @@ Operation `args` are retained as action metadata. On create they initialize the 
 
 Unapplied operations remain preserved and reported in deterministic replay order. Implementations MUST NOT silently synthesize missing entities, dependencies, or extension semantics.
 
+### 6.1 Resolved-state snapshots
+
+A resolved-state snapshot is a compact, renderer-neutral cache of a materialized space. Its wire form has `kind = editspace-state-snapshot`, `v = 1`, `doc`, `entities`, `tombstones`, and `applied`. The normative structure is `schemas/state-snapshot-v1.schema.json`.
+
+Each snapshot entity preserves its entity reference, optional source, independent field registers including their winning operation stamps, action arguments, links, creator and creation stamp, and most recent updating operation. Tombstones remain separate records containing the deleted entity reference, deleting operation, and winning deletion stamp. `applied` records the operation IDs already represented by the snapshot.
+
+Snapshots do not replace authoritative durable history or network-v1 range reconciliation. A sender MUST form a snapshot from one resolved materialized state. A receiver MUST reject a snapshot for a different logical space unless it first resolves `doc` through an authorized space-merge declaration. Applying a snapshot replaces the receiver's cached resolved state; the application projection MUST be reconciled atomically from the previous visible state to the snapshot's final visible state. In particular, an implementation MUST NOT expose intermediate create/update/delete states while importing one snapshot or a queued reconnect batch.
+
+Snapshot replacement MUST remove previously projected entities absent from the new visible state, preserve all supplied field and tombstone stamps, and replay the final visible entities exactly once. A receiver MUST NOT infer deletion merely from an incomplete live projection, discard retained operations, or advertise snapshot contents as durable history it cannot subsequently provide. Reapplying an equivalent snapshot is idempotent with respect to resolved state.
+
 ## 7. Presence envelope
 
 Presence is ephemeral and separate from durable operations. It MUST NOT enter the operation log or affect materialized shared-scene state.

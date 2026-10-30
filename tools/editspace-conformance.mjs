@@ -208,6 +208,7 @@ function schemaIDForMessage(message) {
   if (message?.kind === "editspace.operations") return "https://protocol.editspace.dev/schemas/operation-envelope-v1.schema.json";
   if (message?.kind === "editspace.presence") return "https://protocol.editspace.dev/schemas/presence-envelope-v1.schema.json";
   if (message?.kind === "editspace.space-merges") return "https://protocol.editspace.dev/schemas/space-merge-envelope-v1.schema.json";
+  if (message?.kind === "editspace-state-snapshot") return "https://protocol.editspace.dev/schemas/state-snapshot-v1.schema.json";
   return undefined;
 }
 

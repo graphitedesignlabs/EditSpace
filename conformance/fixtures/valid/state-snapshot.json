@@ -1,0 +1,29 @@
+{
+  "kind": "editspace-state-snapshot",
+  "v": 1,
+  "doc": "scene-7",
+  "entities": [
+    {
+      "reference": { "kind": "object", "id": "cube-1" },
+      "fieldRegisters": {
+        "name": {
+          "value": "Cube",
+          "stamp": { "seq": 3, "actor": "ada", "op": "ada:3" }
+        }
+      },
+      "arguments": {},
+      "links": [],
+      "createdBy": "ada:1",
+      "creationStamp": { "seq": 1, "actor": "ada", "op": "ada:1" },
+      "updatedBy": "ada:3"
+    }
+  ],
+  "tombstones": [
+    {
+      "reference": { "kind": "object", "id": "removed-1" },
+      "deletedBy": "ada:5",
+      "stamp": { "seq": 5, "actor": "ada", "op": "ada:5" }
+    }
+  ],
+  "applied": ["ada:1", "ada:3", "ada:4", "ada:5"]
+}

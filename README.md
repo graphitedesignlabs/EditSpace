@@ -180,6 +180,10 @@ Implementations MUST:
 
 Missing dependencies do not block synchronization indefinitely. Implementations order the known subset causally and use operation-stamp order for missing or cyclic dependency sets. A receiver may request missing history before materialization.
 
+### Resolved-state snapshots
+
+`editspace-state-snapshot` carries a compact resolved cache with winning field-register stamps, tombstones, links, and represented operation IDs. It supports fast application restoration and reconnect handoff without replaying every operation into the renderer. Snapshot application replaces the cached projection atomically and renders only the final visible state, so an object created and later deleted in queued history cannot flash back into view. Durable operations remain authoritative, and snapshots do not replace network history reconciliation. See [section 6.1](SPECIFICATION.md#61-resolved-state-snapshots) and the [snapshot schema](schemas/state-snapshot-v1.schema.json).
+
 ### Peer identity and presence
 
 Identity is part of EditSpace because collaborator presentation must work consistently across conforming endpoints. Presence remains separate from durable scene state: it expires, is never replayed into a space, and may be hidden entirely by an endpoint.
