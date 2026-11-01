@@ -1,0 +1,54 @@
+{
+  "kind": "editspace.operations",
+  "v": 1,
+  "doc": "studio",
+  "ops": [
+    {
+      "doc": "studio", "op": "author:1", "actor": "author", "seq": 1,
+      "action": "create", "entity": "object", "target": "generated-object",
+      "features": ["core.v1", "scene3d.v1"],
+      "fields": { "name": "Generated object", "objectType": "mesh", "evaluatedMeshID": null, "modifierIDs": ["generate-1"] }
+    },
+    {
+      "doc": "studio", "op": "author:2", "actor": "author", "seq": 2, "deps": ["author:1"],
+      "action": "create", "entity": "modifier", "target": "generate-1",
+      "features": ["core.v1", "scene3d.v1", "modifiers.v1"],
+      "fields": {
+        "objectID": "generated-object", "modifierType": "generative", "enabled": true, "order": 0,
+        "prompt": "A low-poly red fox", "units": "meters",
+        "bounds": { "min": [-1, 0, -1], "max": [1, 2, 1] }, "status": "pending"
+      }
+    },
+    {
+      "doc": "studio", "op": "worker:1", "actor": "worker", "seq": 1, "deps": ["author:2"],
+      "action": "update", "entity": "modifier", "target": "generate-1",
+      "features": ["core.v1", "modifiers.v1"],
+      "fields": {
+        "status": "running", "claimant": "worker", "claimID": "worker:1",
+        "responseToClaimID": null, "resultMeshID": null, "error": null
+      }
+    },
+    {
+      "doc": "studio", "op": "worker:2", "actor": "worker", "seq": 2, "deps": ["worker:1"],
+      "action": "create", "entity": "mesh", "target": "generated-mesh",
+      "features": ["core.v1", "scene3d.v1", "mesh.v1"],
+      "fields": { "positions": [[0, 0, 0], [1, 0, 0], [0, 1, 0]], "faces": [[0, 1, 2]] }
+    },
+    {
+      "doc": "studio", "op": "worker:3", "actor": "worker", "seq": 3, "deps": ["worker:2"],
+      "action": "update", "entity": "object", "target": "generated-object",
+      "features": ["core.v1", "scene3d.v1"],
+      "fields": { "evaluatedMeshID": "generated-mesh" }
+    },
+    {
+      "doc": "studio", "op": "worker:4", "actor": "worker", "seq": 4,
+      "deps": ["worker:1", "worker:2", "worker:3"],
+      "action": "update", "entity": "modifier", "target": "generate-1",
+      "features": ["core.v1", "modifiers.v1"],
+      "fields": {
+        "status": "done", "responseToClaimID": "worker:1",
+        "resultMeshID": "generated-mesh", "error": null
+      }
+    }
+  ]
+}

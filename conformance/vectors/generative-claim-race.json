@@ -1,0 +1,58 @@
+{
+  "id": "materialize.generative-claim-race",
+  "protocolVersion": 1,
+  "description": "Concurrent complete claims converge on the claim with the greatest operation stamp.",
+  "input": {
+    "kind": "editspace.operations",
+    "v": 1,
+    "doc": "studio",
+    "ops": [
+      {
+        "doc": "studio", "op": "author:1", "actor": "author", "seq": 1,
+        "action": "create", "entity": "modifier", "target": "generate-1",
+        "fields": {
+          "objectID": "object-1", "modifierType": "generative", "enabled": true, "order": 0,
+          "prompt": "A gear with twelve teeth", "units": "meters", "status": "pending"
+        }
+      },
+      {
+        "doc": "studio", "op": "worker-b:2", "actor": "worker-b", "seq": 2, "deps": ["author:1"],
+        "action": "update", "entity": "modifier", "target": "generate-1",
+        "fields": {
+          "status": "running", "claimant": "worker-b", "claimID": "worker-b:2",
+          "responseToClaimID": null, "resultMeshID": null, "error": null
+        }
+      },
+      {
+        "doc": "studio", "op": "worker-a:2", "actor": "worker-a", "seq": 2, "deps": ["author:1"],
+        "action": "update", "entity": "modifier", "target": "generate-1",
+        "fields": {
+          "status": "running", "claimant": "worker-a", "claimID": "worker-a:2",
+          "responseToClaimID": null, "resultMeshID": null, "error": null
+        }
+      }
+    ]
+  },
+  "expected": {
+    "doc": "studio",
+    "orderedOperationIDs": ["author:1", "worker-a:2", "worker-b:2"],
+    "entities": [
+      {
+        "kind": "modifier",
+        "id": "generate-1",
+        "source": null,
+        "fields": {
+          "objectID": "object-1", "modifierType": "generative", "enabled": true, "order": 0,
+          "prompt": "A gear with twelve teeth", "units": "meters", "status": "running",
+          "claimant": "worker-b", "claimID": "worker-b:2",
+          "responseToClaimID": null, "resultMeshID": null, "error": null
+        },
+        "arguments": {},
+        "links": [],
+        "createdBy": "author:1",
+        "tombstone": null
+      }
+    ],
+    "unappliedOperationIDs": []
+  }
+}

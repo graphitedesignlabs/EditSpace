@@ -1,6 +1,6 @@
 # EditSpace Protocol v1
 
-Status: normative specification, September 2026.
+Status: normative specification, November 2026.
 
 The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT, and MAY are to be interpreted as described by RFC 2119 and RFC 8174 when they appear in uppercase.
 
@@ -193,8 +193,35 @@ Core modifier types and fields include:
 | `strokeRenderer`, `wireframe` | `width` number, optional `color` and rendering-mode token |
 | `label` | `text` string |
 | `externalModel` | optional `embeddedMesh` using the bulk mesh shape, or an asset reference |
+| `generative` | `prompt` string, `units` token, optional `bounds`, and the lifecycle fields defined below |
 
 A dimension is `{ "valueMeters": number }` with optional authoring metadata such as display value, unit symbol, or defining points. Implementations compute generated vertices from modifier inputs deterministically where they support the modifier type.
+
+##### Generative modifier lifecycle
+
+`generative` is the core modifier type for requesting geometry from a capable peer by natural-language prompt. It deliberately uses the existing modifier entity and `evaluatedMeshID` cache rather than a separate request entity: the prompt is a semantic modifier input, while the generated mesh is the evaluated result. Generative fields are core `modifiers.v1` vocabulary and MUST NOT require a vendor feature token. A peer that cannot generate geometry MUST still store and materialize these fields normally. Generated mesh and object operations use the ordinary ungated `mesh.v1` and `scene3d.v1` vocabulary.
+
+The standardized fields are:
+
+| Field | Value | Meaning |
+| --- | --- | --- |
+| `prompt` | non-empty string | Natural-language geometry request. |
+| `units` | `"meters"` | Unit used to interpret quantities in the prompt; generated geometry remains in canonical meters. |
+| `bounds` | `{min: vec3, max: vec3}` | Optional requested local-space bounds in meters. Every `min` component MUST be less than or equal to the corresponding `max` component. |
+| `status` | `pending`, `running`, `done`, or `failed` | Durable lifecycle state. |
+| `claimant` | actor ID or null | Actor that authored the active claim. |
+| `claimID` | operation ID or null | Operation that authored the active claim. |
+| `responseToClaimID` | operation ID or null | Claim for which a terminal response was published. |
+| `resultMeshID` | entity ID or null | Generated mesh for a successful response. It MUST equal the target object's `evaluatedMeshID` when `status` is `done`. |
+| `error` | string or null | Human-readable failure detail. It is diagnostic and MUST NOT be parsed for control flow. |
+
+A request is created as a normal `modifier` create with the required modifier fields, `modifierType: "generative"`, a non-empty `prompt`, `units: "meters"`, and `status: "pending"`. `claimant`, `claimID`, `responseToClaimID`, `resultMeshID`, and `error` SHOULD be absent or null. Changing `prompt`, `units`, or `bounds` defines a new request: the same update MUST set `status` to `pending` and clear all claim and response fields. Implementations MUST NOT reuse a prior generated result after those semantic inputs change.
+
+A capable peer claims a pending request with one `modifier` update that writes `status: "running"`, `claimant` equal to its operation `actor`, `claimID` equal to its operation `op`, and clears the response fields and `error`. All claim fields MUST be written together. If two or more peers race, the claim operation with the greatest operation stamp wins under the normal independent-field last-writer rules because every claimant writes the same complete claim field set. A claimant MUST re-materialize the request before publishing a response and proceed only while its own `claimID` is the materialized value. A losing claimant MUST stop work when practical and MUST NOT publish an object cache update. A mesh it already created remains an ordinary unreferenced mesh and MAY be deleted normally.
+
+For success, the winning claimant MUST publish: (1) an ordinary mesh create containing the generated geometry; (2) an object update setting the requested object's `evaluatedMeshID` to that mesh; and (3) a modifier update setting `status: "done"`, `responseToClaimID` to the active `claimID`, `resultMeshID` to the same mesh ID, and `error` to null. The terminal modifier update MUST causally depend on the active claim, the mesh create, and the object cache update. A receiver MUST consider a response successful only when `responseToClaimID` equals the materialized `claimID`, `resultMeshID` is non-null, and it equals the object's `evaluatedMeshID`; otherwise it MUST treat the request as still running and MUST NOT use the mismatched mesh as this modifier's evaluated result.
+
+For failure, the winning claimant publishes a modifier update with `status: "failed"`, `responseToClaimID` equal to the active `claimID`, `resultMeshID` null, and a non-empty `error`. It MUST causally depend on the active claim. A terminal update whose `responseToClaimID` does not equal the materialized `claimID` is a stale response and MUST be ignored for lifecycle and evaluated-result purposes, though its immutable operation remains retained. To retry, any peer MAY reset the request to `pending` and clear all claim and response fields; the next claim is a new operation with a new `claimID`.
 
 #### `material` and `asset` fields
 

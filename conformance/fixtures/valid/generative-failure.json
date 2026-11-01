@@ -1,0 +1,34 @@
+{
+  "kind": "editspace.operations",
+  "v": 1,
+  "doc": "studio",
+  "ops": [
+    {
+      "doc": "studio", "op": "author:1", "actor": "author", "seq": 1,
+      "action": "create", "entity": "modifier", "target": "generate-1",
+      "features": ["core.v1", "modifiers.v1"],
+      "fields": {
+        "objectID": "generated-object", "modifierType": "generative", "enabled": true, "order": 0,
+        "prompt": "A watertight non-manifold paradox", "units": "meters", "status": "pending"
+      }
+    },
+    {
+      "doc": "studio", "op": "worker:1", "actor": "worker", "seq": 1, "deps": ["author:1"],
+      "action": "update", "entity": "modifier", "target": "generate-1",
+      "features": ["core.v1", "modifiers.v1"],
+      "fields": {
+        "status": "running", "claimant": "worker", "claimID": "worker:1",
+        "responseToClaimID": null, "resultMeshID": null, "error": null
+      }
+    },
+    {
+      "doc": "studio", "op": "worker:2", "actor": "worker", "seq": 2, "deps": ["worker:1"],
+      "action": "update", "entity": "modifier", "target": "generate-1",
+      "features": ["core.v1", "modifiers.v1"],
+      "fields": {
+        "status": "failed", "responseToClaimID": "worker:1",
+        "resultMeshID": null, "error": "Generator could not produce a valid mesh"
+      }
+    }
+  ]
+}

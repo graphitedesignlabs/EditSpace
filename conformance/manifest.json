@@ -14,6 +14,8 @@
     { "id": "wire.presence", "path": "conformance/fixtures/valid/presence.json", "valid": true, "required": true },
     { "id": "wire.space-merge", "path": "conformance/fixtures/valid/space-merge.json", "valid": true, "required": true },
     { "id": "wire.shared-3d-scene", "path": "conformance/fixtures/valid/shared-3d-scene.json", "valid": true, "required": true },
+    { "id": "wire.generative-lifecycle", "path": "conformance/fixtures/valid/generative-lifecycle.json", "valid": true, "required": true },
+    { "id": "wire.generative-failure", "path": "conformance/fixtures/valid/generative-failure.json", "valid": true, "required": true },
     { "id": "wire.state-snapshot", "path": "conformance/fixtures/valid/state-snapshot.json", "valid": true, "required": false },
     { "id": "wire.negative-sequence", "path": "conformance/fixtures/invalid/negative-sequence.json", "valid": false, "problem": "invalidOperation", "required": true },
     { "id": "wire.document-mismatch", "path": "conformance/fixtures/invalid/document-mismatch.json", "valid": false, "problem": "documentMismatch", "required": true },
@@ -24,12 +26,14 @@
     { "id": "wire.unsupported-entity", "path": "conformance/fixtures/invalid/unsupported-entity.json", "valid": false, "problem": "unsupportedEntity", "required": true },
     { "id": "wire.unsupported-feature", "path": "conformance/fixtures/invalid/unsupported-feature.json", "valid": false, "problem": "unsupportedFeature", "required": true },
     { "id": "wire.invalid-transform", "path": "conformance/fixtures/invalid/invalid-transform.json", "valid": false, "problem": "invalidOperation", "required": true },
-    { "id": "wire.invalid-mesh-index", "path": "conformance/fixtures/invalid/invalid-mesh-index.json", "valid": false, "problem": "invalidOperation", "required": true }
+    { "id": "wire.invalid-mesh-index", "path": "conformance/fixtures/invalid/invalid-mesh-index.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.invalid-generative-claim", "path": "conformance/fixtures/invalid/invalid-generative-claim.json", "valid": false, "problem": "invalidOperation", "required": true }
   ],
   "vectors": [
     { "id": "materialize.concurrent-field-writes", "path": "conformance/vectors/concurrent-field-writes.json", "required": true },
     { "id": "materialize.causal-duplicate-and-link", "path": "conformance/vectors/causal-duplicate-and-link.json", "required": true },
     { "id": "materialize.tombstone-and-unapplied", "path": "conformance/vectors/tombstone-and-unapplied.json", "required": true },
-    { "id": "materialize.dependency-cycle-fallback", "path": "conformance/vectors/dependency-cycle-fallback.json", "required": true }
+    { "id": "materialize.dependency-cycle-fallback", "path": "conformance/vectors/dependency-cycle-fallback.json", "required": true },
+    { "id": "materialize.generative-claim-race", "path": "conformance/vectors/generative-claim-race.json", "required": true }
   ]
 }

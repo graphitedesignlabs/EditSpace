@@ -245,6 +245,33 @@ function sceneFieldProblems(validators, operation) {
       return ["invalidOperation"];
     }
   }
+  if (operation.entity === "modifier") {
+    const fields = operation.fields ?? {};
+    const generativeKeys = ["prompt", "status", "claimant", "claimID", "responseToClaimID", "resultMeshID", "error"];
+    const isGenerative = fields.modifierType === "generative" || generativeKeys.some((key) => key in fields);
+    if (isGenerative) {
+      if (fields.bounds && fields.bounds.min.some((value, index) => value > fields.bounds.max[index])) return ["invalidOperation"];
+      if (operation.action === "create" && fields.modifierType === "generative") {
+        if (typeof fields.prompt !== "string" || fields.prompt.length === 0 || fields.units !== "meters" || fields.status !== "pending") return ["invalidOperation"];
+        if (typeof fields.objectID !== "string" || typeof fields.enabled !== "boolean" || !Number.isSafeInteger(fields.order)) return ["invalidOperation"];
+      }
+      if (fields.status === "pending" && operation.action === "update") {
+        if (!["claimant", "claimID", "responseToClaimID", "resultMeshID", "error"].every((key) => fields[key] === null)) return ["invalidOperation"];
+      }
+      if (fields.status === "running") {
+        if (fields.claimant !== operation.actor || fields.claimID !== operation.op) return ["invalidOperation"];
+        if (!["responseToClaimID", "resultMeshID", "error"].every((key) => fields[key] === null)) return ["invalidOperation"];
+      }
+      if (fields.status === "done") {
+        if (typeof fields.responseToClaimID !== "string" || typeof fields.resultMeshID !== "string" || fields.error !== null) return ["invalidOperation"];
+        if (!(operation.deps ?? []).includes(fields.responseToClaimID)) return ["invalidOperation"];
+      }
+      if (fields.status === "failed") {
+        if (typeof fields.responseToClaimID !== "string" || fields.resultMeshID !== null || typeof fields.error !== "string" || fields.error.length === 0) return ["invalidOperation"];
+        if (!(operation.deps ?? []).includes(fields.responseToClaimID)) return ["invalidOperation"];
+      }
+    }
+  }
   return [];
 }
 

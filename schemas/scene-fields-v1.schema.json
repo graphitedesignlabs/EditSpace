@@ -152,7 +152,21 @@
         "color": { "$ref": "#/$defs/color" },
         "renderingMode": { "$ref": "common-v1.schema.json#/$defs/token" },
         "text": { "type": "string" },
-        "embeddedMesh": { "$ref": "#/$defs/meshFields" }
+        "embeddedMesh": { "$ref": "#/$defs/meshFields" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "units": { "const": "meters" },
+        "bounds": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": { "min": { "$ref": "#/$defs/vec3" }, "max": { "$ref": "#/$defs/vec3" } },
+          "additionalProperties": false
+        },
+        "status": { "enum": ["pending", "running", "done", "failed"] },
+        "claimant": { "anyOf": [{ "$ref": "common-v1.schema.json#/$defs/identifier" }, { "type": "null" }] },
+        "claimID": { "anyOf": [{ "$ref": "common-v1.schema.json#/$defs/identifier" }, { "type": "null" }] },
+        "responseToClaimID": { "anyOf": [{ "$ref": "common-v1.schema.json#/$defs/identifier" }, { "type": "null" }] },
+        "resultMeshID": { "anyOf": [{ "$ref": "common-v1.schema.json#/$defs/identifier" }, { "type": "null" }] },
+        "error": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
       },
       "additionalProperties": true
     },

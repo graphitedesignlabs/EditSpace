@@ -1,0 +1,16 @@
+{
+  "kind": "editspace.operations",
+  "v": 1,
+  "doc": "studio",
+  "ops": [
+    {
+      "doc": "studio", "op": "worker:1", "actor": "worker", "seq": 1,
+      "action": "update", "entity": "modifier", "target": "generate-1",
+      "features": ["core.v1", "modifiers.v1"],
+      "fields": {
+        "status": "running", "claimant": "different-worker", "claimID": "worker:1",
+        "responseToClaimID": null, "resultMeshID": null, "error": null
+      }
+    }
+  ]
+}
