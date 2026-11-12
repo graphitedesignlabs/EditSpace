@@ -8,6 +8,7 @@
       "action": "update", "entity": "modifier", "target": "generate-1",
       "features": ["core.v1", "modifiers.v1"],
       "fields": {
+        "objectID": "generated-object",
         "status": "running", "claimant": "different-worker", "claimID": "worker:1",
         "responseToClaimID": null, "resultMeshID": null, "error": null
       }

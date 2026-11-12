@@ -1,0 +1,1 @@
+{"kind":"editspace.operations","v":1,"doc":"scene","ops":[{"doc":"scene","op":"a:1","actor":"a","seq":1,"action":"create","entity":"modifier","target":"modifier","fields":{"objectID":"object","enabled":true,"order":0}}]}

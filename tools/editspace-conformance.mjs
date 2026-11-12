@@ -149,6 +149,10 @@ async function validatorSet() {
       type === "number" ? typeof value === "number" && Number.isFinite(value) :
       type === "object" ? actualType === "object" : actualType === type;
 
+    if (schema.allOf) {
+      for (const requirement of schema.allOf) errors.push(...validate(requirement, value, baseID, path));
+    }
+
     if (schema.anyOf) {
       const matches = schema.anyOf.some((choice) => validate(choice, value, baseID, path).length === 0);
       if (!matches) add("does not match any allowed shape");
@@ -224,8 +228,13 @@ function sceneFieldProblems(validators, operation) {
     material: "materialFields",
     asset: "assetFields"
   };
-  const definitionName = definitionNames[operation.entity];
+  let definitionName = definitionNames[operation.entity];
   if (!definitionName) return [];
+  // Owned children carry their owner on every lifecycle mutation (§3.5).
+  if (["vertex", "face", "modifier"].includes(operation.entity)) {
+    if (operation.action === "create") definitionName = `${operation.entity}CreateFields`;
+    else if (["update", "delete"].includes(operation.action)) definitionName = `${operation.entity}ChangeFields`;
+  }
   const sceneSchema = validators.schemas.get("https://protocol.editspace.dev/schemas/scene-fields-v1.schema.json");
   const errors = validators.validate(sceneSchema.$defs[definitionName], operation.fields ?? {}, sceneSchema.$id, "$.fields");
   if (errors.length > 0) return ["invalidOperation"];

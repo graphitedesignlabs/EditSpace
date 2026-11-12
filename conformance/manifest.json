@@ -27,6 +27,14 @@
     { "id": "wire.unsupported-feature", "path": "conformance/fixtures/invalid/unsupported-feature.json", "valid": false, "problem": "unsupportedFeature", "required": true },
     { "id": "wire.invalid-transform", "path": "conformance/fixtures/invalid/invalid-transform.json", "valid": false, "problem": "invalidOperation", "required": true },
     { "id": "wire.invalid-mesh-index", "path": "conformance/fixtures/invalid/invalid-mesh-index.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.modifier-missing-object", "path": "conformance/fixtures/invalid/modifier-missing-object.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.modifier-missing-type", "path": "conformance/fixtures/invalid/modifier-missing-type.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.modifier-missing-enabled", "path": "conformance/fixtures/invalid/modifier-missing-enabled.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.modifier-missing-order", "path": "conformance/fixtures/invalid/modifier-missing-order.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.vertex-missing-mesh", "path": "conformance/fixtures/invalid/vertex-missing-mesh.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.vertex-missing-position", "path": "conformance/fixtures/invalid/vertex-missing-position.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.face-missing-mesh", "path": "conformance/fixtures/invalid/face-missing-mesh.json", "valid": false, "problem": "invalidOperation", "required": true },
+    { "id": "wire.face-missing-vertices", "path": "conformance/fixtures/invalid/face-missing-vertices.json", "valid": false, "problem": "invalidOperation", "required": true },
     { "id": "wire.invalid-generative-claim", "path": "conformance/fixtures/invalid/invalid-generative-claim.json", "valid": false, "problem": "invalidOperation", "required": true }
   ],
   "vectors": [
@@ -34,6 +42,7 @@
     { "id": "materialize.causal-duplicate-and-link", "path": "conformance/vectors/causal-duplicate-and-link.json", "required": true },
     { "id": "materialize.tombstone-and-unapplied", "path": "conformance/vectors/tombstone-and-unapplied.json", "required": true },
     { "id": "materialize.dependency-cycle-fallback", "path": "conformance/vectors/dependency-cycle-fallback.json", "required": true },
-    { "id": "materialize.generative-claim-race", "path": "conformance/vectors/generative-claim-race.json", "required": true }
+    { "id": "materialize.generative-claim-race", "path": "conformance/vectors/generative-claim-race.json", "required": true },
+    { "id": "materialize.edit-dependencies", "path": "conformance/vectors/edit-dependencies.json", "required": true }
   ]
 }

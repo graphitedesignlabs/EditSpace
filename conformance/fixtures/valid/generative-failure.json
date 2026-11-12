@@ -17,6 +17,7 @@
       "action": "update", "entity": "modifier", "target": "generate-1",
       "features": ["core.v1", "modifiers.v1"],
       "fields": {
+        "objectID": "generated-object",
         "status": "running", "claimant": "worker", "claimID": "worker:1",
         "responseToClaimID": null, "resultMeshID": null, "error": null
       }
@@ -26,6 +27,7 @@
       "action": "update", "entity": "modifier", "target": "generate-1",
       "features": ["core.v1", "modifiers.v1"],
       "fields": {
+        "objectID": "generated-object",
         "status": "failed", "responseToClaimID": "worker:1",
         "resultMeshID": null, "error": "Generator could not produce a valid mesh"
       }

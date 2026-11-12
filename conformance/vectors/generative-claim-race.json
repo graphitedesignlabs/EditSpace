@@ -19,6 +19,7 @@
         "doc": "studio", "op": "worker-b:2", "actor": "worker-b", "seq": 2, "deps": ["author:1"],
         "action": "update", "entity": "modifier", "target": "generate-1",
         "fields": {
+          "objectID": "object-1",
           "status": "running", "claimant": "worker-b", "claimID": "worker-b:2",
           "responseToClaimID": null, "resultMeshID": null, "error": null
         }
@@ -27,6 +28,7 @@
         "doc": "studio", "op": "worker-a:2", "actor": "worker-a", "seq": 2, "deps": ["author:1"],
         "action": "update", "entity": "modifier", "target": "generate-1",
         "fields": {
+          "objectID": "object-1",
           "status": "running", "claimant": "worker-a", "claimID": "worker-a:2",
           "responseToClaimID": null, "resultMeshID": null, "error": null
         }

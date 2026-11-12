@@ -487,6 +487,32 @@ Malformed UTF-8, invalid JSON, or a payload that does not conform to the
 presence schema is `invalidMessage`. Valid presence remains ephemeral and MUST
 NOT be inserted into durable operation history.
 
+The channel `editspace.asset` is reserved by EditSpace for the bytes of assets
+whose `uri` is `editspace-asset:<sha256>` (core specification, asset fields).
+Durable history carries only the asset record; bytes are pulled on demand from
+any linked peer that holds them. Payloads:
+
+- **Request** (UTF-8 JSON):
+  `{"kind":"assetRequest","v":1,"sha256":"<hex>","offset":<int>,"length":<int>}`
+- **Chunk**: a UTF-8 JSON header
+  `{"kind":"assetChunk","v":1,"sha256":"<hex>","offset":<int>,"total":<int>}`,
+  one line feed (0x0A), then the raw bytes `offset … offset+n` of the asset
+  (`n` ≤ 262,144; `offset + n` ≤ `total`, the full size).
+- **Unavailable** (UTF-8 JSON):
+  `{"kind":"assetUnavailable","v":1,"sha256":"<hex>"}`, when the responder
+  does not hold the complete, verified bytes.
+
+A responder serves only bytes it has verified against the digest. A requester
+keeps at most one request outstanding per link, requests the next range only
+after the previous chunk arrives, verifies the complete bytes against `sha256`
+before use, and discards them on mismatch. This bounds the asset data queued
+ahead of operations on a link to one chunk, so asset transfer cannot stall
+live editing. A requester SHOULD abandon a request unanswered after 10 s and
+SHOULD retry a peer that answered `assetUnavailable` after 30 s, since that
+peer may have fetched the bytes since. Malformed asset payloads are ignored.
+Asset bytes are ephemeral transfers, not operations; serving them is not
+operation forwarding (section 5.8).
+
 #### 5.6.9 `networkError`
 
 ~~~json
@@ -566,6 +592,13 @@ V1 is not a mesh-routing protocol. A peer MUST NOT forward an operation or merge
 
 - operations it authored locally; and
 - operations explicitly imported into a local space by application action.
+
+Holding a space in a user's document is such an application action: while a
+document is open in a session, an editor that keeps the space in it (for
+example a desktop editor saving the space with its file) MAY approve every
+operation the document holds, including operations received from neighbors,
+for export to every neighbor. It SHOULD let neighbors pull only what they lack
+through history summaries rather than re-sending operations.
 
 Every conforming endpoint MUST attempt a direct link to every discovered compatible endpoint, subject to explicit local participation policy and the minimum eight-peer capacity. Every pair that activates a common space communicates directly. Operation IDs make duplicate direct delivery harmless.
 

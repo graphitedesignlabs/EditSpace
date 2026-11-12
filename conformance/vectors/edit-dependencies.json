@@ -1,0 +1,101 @@
+{
+  "id": "materialize.edit-dependencies",
+  "protocolVersion": 1,
+  "description": "An edit without deps is ordered before a create that has deps, so it is unapplied; an edit naming the creating operation replays after it.",
+  "input": {
+    "kind": "editspace.operations",
+    "v": 1,
+    "doc": "scene",
+    "ops": [
+      {
+        "doc": "scene",
+        "op": "b:4",
+        "actor": "b",
+        "seq": 4,
+        "deps": [
+          "p:2",
+          "p:3"
+        ],
+        "action": "update",
+        "entity": "object",
+        "target": "box",
+        "fields": {
+          "x": 7
+        }
+      },
+      {
+        "doc": "scene",
+        "op": "p:3",
+        "actor": "p",
+        "seq": 3,
+        "action": "update",
+        "entity": "object",
+        "target": "box",
+        "fields": {
+          "x": 5
+        }
+      },
+      {
+        "doc": "scene",
+        "op": "p:2",
+        "actor": "p",
+        "seq": 2,
+        "deps": [
+          "p:1"
+        ],
+        "action": "create",
+        "entity": "object",
+        "target": "box",
+        "fields": {
+          "x": 0
+        }
+      },
+      {
+        "doc": "scene",
+        "op": "p:1",
+        "actor": "p",
+        "seq": 1,
+        "action": "create",
+        "entity": "object",
+        "target": "frame",
+        "fields": {}
+      }
+    ]
+  },
+  "expected": {
+    "doc": "scene",
+    "orderedOperationIDs": [
+      "p:1",
+      "p:3",
+      "p:2",
+      "b:4"
+    ],
+    "entities": [
+      {
+        "kind": "object",
+        "id": "box",
+        "source": null,
+        "fields": {
+          "x": 7
+        },
+        "arguments": {},
+        "links": [],
+        "createdBy": "p:2",
+        "tombstone": null
+      },
+      {
+        "kind": "object",
+        "id": "frame",
+        "source": null,
+        "fields": {},
+        "arguments": {},
+        "links": [],
+        "createdBy": "p:1",
+        "tombstone": null
+      }
+    ],
+    "unappliedOperationIDs": [
+      "p:3"
+    ]
+  }
+}

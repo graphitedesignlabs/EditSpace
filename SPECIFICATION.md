@@ -50,7 +50,7 @@ Every operation in `ops` MUST have the same `doc` space ID as its envelope. Enve
 | `op` | REQUIRED | Globally unique immutable operation identifier. `actor:seq` is recommended. |
 | `actor` | REQUIRED | Stable author identifier. |
 | `seq` | REQUIRED | Actor-local monotonically increasing safe integer. It is allocated across all spaces, not independently per space, so later space merges cannot create operation-ID collisions. |
-| `deps` | OPTIONAL | Unique causal predecessor operation IDs; defaults to `[]`. |
+| `deps` | OPTIONAL | Unique causal predecessor operation IDs; defaults to `[]`. Edits to existing entities MUST name the entity's creating operation (section 5). |
 | `action` | REQUIRED | Extensible action token. |
 | `entity` | REQUIRED | Extensible entity-kind token. |
 | `target` | Action-dependent | Target entity identifier. |
@@ -170,11 +170,17 @@ A `mesh` may use a bulk representation for import, creation, or whole-mesh repla
 
 All indices MUST be in range. If normals, UVs, colors, or material indices are present, their counts MUST match the corresponding positions or faces. Because each top-level field is atomic, producers changing mesh topology SHOULD update all dependent arrays in one operation.
 
-For fine-grained concurrent modeling, vertices and faces are separate stable entities. A `vertex` has required `meshID` and `position`, with optional `normal`, `textureCoordinate`, and `color`. A `face` has required `meshID` and an ordered `vertexIDs` array of at least three stable vertex IDs, plus optional `materialID`. Deleting a mesh does not erase its vertex/face operation history.
+For fine-grained concurrent modeling, vertices and faces are separate stable entities. A `vertex` create has required `meshID` and `position`, with optional `normal`, `textureCoordinate`, and `color`. A `face` create has required `meshID` and an ordered `vertexIDs` array of at least three stable vertex IDs, plus optional `materialID`. Every `vertex` or `face` create, update, and delete MUST carry its owning `meshID`; ownership cannot be inferred from earlier operations. Deleting a mesh does not erase its vertex/face operation history.
 
 #### `modifier` fields
 
-A modifier has required `objectID`, `modifierType`, `enabled`, and `order`. Its parameter fields are semantic inputs; generated geometry is a cache and MUST NOT be synchronized as authoritative state when the inputs are available.
+A modifier create has required `objectID`, `modifierType`, `enabled`, and `order`. Every modifier create, update, and delete MUST carry its owning `objectID`; ownership cannot be inferred from earlier operations. Its parameter fields are semantic inputs; generated geometry is a cache and MUST NOT be synchronized as authoritative state when the inputs are available.
+
+| Entity | Required on create | Required on update and delete |
+| --- | --- | --- |
+| `vertex` | `meshID`, `position` | `meshID` |
+| `face` | `meshID`, `vertexIDs` | `meshID` |
+| `modifier` | `objectID`, `modifierType`, `enabled`, `order` | `objectID` |
 
 A producer MAY publish the complete evaluated post-modifier result as a mesh entity and reference it from the object with `evaluatedMeshID`. The producer SHOULD refresh that mesh whenever the visible modifier result changes and SHOULD set `evaluatedMeshID` to null when no evaluated cache is available. A receiver that supports the complete active modifier stack SHOULD evaluate the semantic inputs and ignore this cache. A receiver that cannot evaluate the complete stack MAY render the evaluated mesh instead. Receivers MUST NOT treat the evaluated mesh as modifier source geometry or apply the modifier stack to it.
 
@@ -227,7 +233,9 @@ For failure, the winning claimant publishes a modifier update with `status: "fai
 
 Core materials use a metallic/roughness PBR vocabulary: `name`, `baseColor`, `metallic`, `roughness`, `emissiveColor`, `opacity`, `doubleSided`, `baseColorTextureAssetID`, `normalTextureAssetID`, and `metallicRoughnessTextureAssetID`. Colors use sRGB; scalar factors are in `0...1`.
 
-An asset contains `name`, `uri`, `mediaType`, and `sha256`. `sha256` is the lowercase hexadecimal digest of the referenced bytes. Large mesh buffers, textures, and media SHOULD travel through the asset channel while their IDs, hashes, and scene relationships travel through operations.
+An asset contains `name`, `uri`, `mediaType`, and `sha256`, and MAY contain `byteLength` (non-negative integer, the size of the referenced bytes). `sha256` is the lowercase hexadecimal digest of the referenced bytes. Large mesh buffers, textures, and media SHOULD travel through the asset channel while their IDs, hashes, and scene relationships travel through operations.
+
+An asset whose `uri` is `editspace-asset:<sha256>` (the same digest as its `sha256` field) names no location: its bytes are obtained from peers that hold them, over the networking `editspace.asset` channel, and MUST be verified against `sha256` before use. Any peer that holds verified bytes MAY serve them, so such an asset outlives the peer that produced it.
 
 The normative structural shapes for these fields are in `schemas/scene-fields-v1.schema.json` and are exercised by conformance fixtures.
 
@@ -260,6 +268,8 @@ Accepted operations are ordered with this deterministic algorithm:
 5. Repeat steps 3–4. If no operation is ready, sort every remaining operation by ascending stamp and emit it; this is the deterministic cycle fallback.
 
 A dependency absent from the available input set does not block ordering. Receivers SHOULD request missing history, but MUST converge over the same available set. Dependencies only constrain order; they do not authorize an operation or change its stamp.
+
+Ordering follows `deps`, not `seq`: an operation without dependencies is emitted in the first ready set even when its stamp is greater than the operations its author had already seen. A producer therefore MUST include in `deps`, for every `update`, `delete`, `link`, or `unlink` of an existing entity, and for every `duplicate`, `link`, or `unlink` with an existing source, the operation that created that entity's current incarnation (its latest known `create` or `duplicate`). It SHOULD also include the latest operation it has applied to that entity. Otherwise, whenever the creating operation has dependencies of its own, the edit is ordered before the entity exists and is unapplied on every conformant peer (section 6).
 
 ## 6. Materialized state
 

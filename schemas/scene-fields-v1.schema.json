@@ -120,6 +120,18 @@
       },
       "additionalProperties": true
     },
+    "vertexCreateFields": {
+      "allOf": [
+        { "$ref": "#/$defs/vertexFields" },
+        { "required": ["meshID", "position"] }
+      ]
+    },
+    "vertexChangeFields": {
+      "allOf": [
+        { "$ref": "#/$defs/vertexFields" },
+        { "required": ["meshID"] }
+      ]
+    },
     "faceFields": {
       "type": "object",
       "properties": {
@@ -128,6 +140,18 @@
         "materialID": { "$ref": "common-v1.schema.json#/$defs/identifier" }
       },
       "additionalProperties": true
+    },
+    "faceCreateFields": {
+      "allOf": [
+        { "$ref": "#/$defs/faceFields" },
+        { "required": ["meshID", "vertexIDs"] }
+      ]
+    },
+    "faceChangeFields": {
+      "allOf": [
+        { "$ref": "#/$defs/faceFields" },
+        { "required": ["meshID"] }
+      ]
     },
     "modifierFields": {
       "type": "object",
@@ -170,6 +194,18 @@
       },
       "additionalProperties": true
     },
+    "modifierCreateFields": {
+      "allOf": [
+        { "$ref": "#/$defs/modifierFields" },
+        { "required": ["objectID", "modifierType", "enabled", "order"] }
+      ]
+    },
+    "modifierChangeFields": {
+      "allOf": [
+        { "$ref": "#/$defs/modifierFields" },
+        { "required": ["objectID"] }
+      ]
+    },
     "materialFields": {
       "type": "object",
       "properties": {
@@ -192,7 +228,8 @@
         "name": { "type": "string" },
         "uri": { "type": "string" },
         "mediaType": { "type": "string" },
-        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "byteLength": { "type": "integer", "minimum": 0 }
       },
       "additionalProperties": true
     }
